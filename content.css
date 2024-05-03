@@ -1,0 +1,50 @@
+p {
+    margin-left: 2px;
+}
+
+.center {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.box {
+    display: flex;
+    flex-wrap: wrap;
+}
+.box>* {
+    flex: 1 1 160px;
+}
+
+.cheat-detector {
+    background: rgb(23, 29, 37, 0.3);
+    border-radius: 5px;
+    padding: 1px 5px;
+    margin-bottom: 1em;
+}
+
+.cheat-percentage-div {
+    padding: 5px 5px;
+}
+
+.cheat-percentage-value {
+    margin-left: 5px;
+    text-align: center;
+    border: solid;
+    border-radius: 5px;
+}
+
+.cheat-percentage-low {
+    color: #3a9700;
+}
+.cheat-percentage-mid {
+    color: #c0b34a;
+}
+.cheat-percentage-high {
+    color: #a94847;
+}
+
+.show-hide-img-button {
+    max-width: 10%;
+    height: auto;
+}
