@@ -15,12 +15,12 @@ async function run() {
     }
 
     if(!playerDetailsPromise) {
-        let playerDataDetailsPromise = getPlayerDetailsData(playerData.player.steam64Id);
+        const playerDataDetailsPromise = getPlayerDetailsData(playerData.player.steam64Id);
         playerDetailsPromise = playerDetailsPromise ?? getPlayerDetails(playerDataDetailsPromise);
     }
 
-    let topNHltvPlayersDataPromise = getTopNHltvPlayersData();
-    let skillCalculationsPromise = calculate(playerData, topNHltvPlayersDataPromise);
+    const topNHltvPlayersDataPromise = getTopNHltvPlayersData();
+    const skillCalculationsPromise = calculate(playerData, topNHltvPlayersDataPromise);
 
     createInterface(playerData, skillCalculationsPromise, playerDetailsPromise);
 }
@@ -85,8 +85,8 @@ async function createInterface(playerData, skillCalculationsPromise, playerDetai
 
 async function calculate(player, topNHltvPlayers) {
     return topNHltvPlayers.then(c => {
-        let result = betterThan(player, c);
-        let suspiciousPoints = getSuspiciousPoints(result.comparisons);
+        const result = betterThan(player, c);
+        const suspiciousPoints = getSuspiciousPoints(result.comparisons);
 
         let spSum = 0;
         let all = 0;
@@ -95,7 +95,7 @@ async function calculate(player, topNHltvPlayers) {
             spSum += sp.points;
             all += sp.all;
         })
-        let cheaterPercentage = result.info.matchesCount ? Math.round(sigmoidFilter(spSum / all * 100) * 100) : 0;
+        const cheaterPercentage = result.info.matchesCount ? Math.round(sigmoidFilter(spSum / all * 100) * 100) : 0;
 
         return { suspiciousPoints, matchesCount: result.info.matchesCount, cheaterPercentage: cheaterPercentage }
     })
@@ -122,15 +122,15 @@ async function getPlayerDetails(playerDetailsPromise) {
 }
 
 async function getTopNHltvPlayersData() {
-    let topNHltvPlayersDataFromCachePromise = getCache('topNHltvPlayersData');
-    let lastCalculationsDateFromCachePromise = getCache('lastCalculationsDate');
+    const topNHltvPlayersDataFromCachePromise = getCache('topNHltvPlayersData');
+    const lastCalculationsDateFromCachePromise = getCache('lastCalculationsDate');
     let dateMinusDay = new Date();
     dateMinusDay.setDate(dateMinusDay.getDate() - 1);
 
     return await Promise.all([topNHltvPlayersDataFromCachePromise, lastCalculationsDateFromCachePromise]).then(async cacheData => {
         if (!cacheData[0] || !cacheData[1] || new Date(cacheData[1]) < dateMinusDay) {
-            let topNHltvPlayers = (await getTop10HltvPlayers()).map(x => x.steam64Id);
-            let topNHltvPlayersDataFromApi = getPlayersDataFromApi(topNHltvPlayers);
+            const topNHltvPlayers = (await getTop10HltvPlayers()).map(x => x.steam64Id);
+            const topNHltvPlayersDataFromApi = getPlayersDataFromApi(topNHltvPlayers);
             return await Promise.all(topNHltvPlayersDataFromApi).then(apiData => {
                 setCache('topNHltvPlayersData', apiData);
                 setCache('lastCalculationsDate', new Date());
@@ -153,19 +153,19 @@ function getPlayersDataFromApi(steamIds64) {
 }
 
 function getExtDiv() {
-    let extDiv = document.getElementsByClassName('responsive_status_info')[0];
+    const extDiv = document.getElementsByClassName('responsive_status_info')[0];
     if (!extDiv)
         extDiv = document.getElementsByClassName('profile_rightcol')[0];
     return extDiv;
 }
 
 function isOldMainDivExist(){
-    let oldMainDiv = document.getElementsByClassName('cheat-detector-main');
+    const oldMainDiv = document.getElementsByClassName('cheat-detector-main');
     return oldMainDiv && oldMainDiv.length > 0;
 }
 
 function removeOldMainDiv() {
-    let oldMainDiv = document.getElementsByClassName('cheat-detector-main');
+    const oldMainDiv = document.getElementsByClassName('cheat-detector-main');
     if (oldMainDiv) {
         while (oldMainDiv.length > 0) {
             oldMainDiv[0].parentNode.removeChild(oldMainDiv[0]);
@@ -174,17 +174,17 @@ function removeOldMainDiv() {
 }
 
 async function createTabWithContent(tabName) {
-    let className = tabName.replaceAll(' ', '-').toLowerCase();
-    let tab = document.createElement('div');
+    const className = tabName.replaceAll(' ', '-').toLowerCase();
+    const tab = document.createElement('div');
     tab.className = ('cheat-detector ' + className);
 
-    let tabContent = document.createElement('div');
+    const tabContent = document.createElement('div');
     tabContent.className = (className + '-content');
 
-    let tittleBox = document.createElement('div');
+    const tittleBox = document.createElement('div');
     tittleBox.className = 'box';
 
-    let h3 = document.createElement('h3');
+    const h3 = document.createElement('h3');
     h3.textContent = tabName;
 
     tittleBox.appendChild(h3);
@@ -223,7 +223,7 @@ async function createInfoTab(player) {
     text.textContent = 'Faceit highest rank: ' + (player.player.highestRanks.faceit ? '' : '-');
     faceitDiv.appendChild(text);
     if(player.player.highestRanks.faceit && player.player.highestRanks.faceit > 0) {
-        let faceitImg = document.createElement('img');
+        const faceitImg = document.createElement('img');
         faceitImg.src = chrome.runtime.getURL('images/faceit/faceit' + player.player.highestRanks.faceit + '.svg');
         faceitImg.style.maxWidth = '10%';
         faceitImg.style.height = 'auto';
@@ -244,7 +244,7 @@ async function createInfoTab(player) {
 
     faceitDiv = document.createElement('div');
     faceitDiv.className = 'box';
-    let inneriP = document.createElement('p');
+    const inneriP = document.createElement('p');
     inneriP.textContent = 'Faceit current rank: ' + (player.player.currentRanks.faceit ? '' : '-');
     faceitDiv.appendChild(inneriP);
     if(player.player.highestRanks.faceit && player.player.currentRanks.faceit > 0) {
@@ -275,28 +275,28 @@ async function createBannedTeammatesTab(detailsPromise) {
         if(!detailsData || detailsData.bannedTeammates.length === 0)
             return;
 
-        let {tab, tabContent} = await createTabWithContent('Banned teammates (' + detailsData.bannedTeammates.length + ')');
+        const {tab, tabContent} = await createTabWithContent('Banned teammates (' + detailsData.bannedTeammates.length + ')');
 
-        let bannedTeammatesDiv = document.createElement('div');
+        const bannedTeammatesDiv = document.createElement('div');
         bannedTeammatesDiv.className = 'profile_topfriends profile_count_link_preview';
-        for(let bannedTeammate of detailsData.bannedTeammates) {
-            let bannedRow = document.createElement('div');
+        for(const bannedTeammate of detailsData.bannedTeammates) {
+            const bannedRow = document.createElement('div');
             bannedRow.className = 'friendBlock persona offline';
             bannedRow['data-panel'] = '{"flow-children":"column"}';
-            let friendBlockLinkOverlay = document.createElement('a');
+            const friendBlockLinkOverlay = document.createElement('a');
             friendBlockLinkOverlay.className = 'friendBlockLinkOverlay';
             friendBlockLinkOverlay.href = 'https://steamcommunity.com/profiles/' + bannedTeammate.steam64Id;
 
-            let playerAvatar = document.createElement('div');
+            const playerAvatar = document.createElement('div');
             playerAvatar.className = 'playerAvatar offline';
-            let avatarImg = document.createElement('img');
+            const avatarImg = document.createElement('img');
             avatarImg.src = bannedTeammate.steamAvatarUrl;
             playerAvatar.appendChild(avatarImg);
 
-            let friendBlockContent = document.createElement('div');
+            const friendBlockContent = document.createElement('div');
             friendBlockContent.textContent = bannedTeammate.steamNickname;
-            let br = document.createElement('br');
-            let friendSmallText = document.createElement('span');
+            const br = document.createElement('br');
+            const friendSmallText = document.createElement('span');
             friendSmallText.textContent = 'Matches played together: ' + bannedTeammate.matchesPlayedTogether;
             friendBlockContent.appendChild(br);
             friendBlockContent.appendChild(friendSmallText);
@@ -318,12 +318,12 @@ async function createPlatformBansTab(detailsPromise) {
         if(!detailsData || !detailsData.platformBans || detailsData.platformBans.length <= 1)
             return;
 
-        let {tab, tabContent} = await createTabWithContent('Bans (' + detailsData.platformBans.length + ')');
+        const {tab, tabContent} = await createTabWithContent('Bans (' + detailsData.platformBans.length + ')');
 
-        for(let platform of detailsData.platformBans.filter(x => x !== 'matchmaking')) {
-            let row = document.createElement('a');
+        for(const platform of detailsData.platformBans.filter(x => x !== 'matchmaking')) {
+            const row = document.createElement('a');
             // row.href = 'https://www.faceit.com/en/players/' + details.faceitNickname; //to do
-            let img = document.createElement('img');
+            const img = document.createElement('img');
             img.title = platform;
             img.src = chrome.runtime.getURL('images/platform-logo/' + platform + '.png');
             img.className = 'badge_icon small';
@@ -338,22 +338,23 @@ async function createPlatformBansTab(detailsPromise) {
 
 async function createSuspiciousTab(player, skillCalculationsPromise) {
     return skillCalculationsPromise.then(async skillCalculations => {
-        let matchesCount = skillCalculations.matchesCount;
-        let suspiciousPoints = skillCalculations.suspiciousPoints;
-        let { tab, tabContent } = await createTabWithContent('Suspicious points');
+        const matchesCount = skillCalculations.matchesCount;
+        const suspiciousPoints = skillCalculations.suspiciousPoints;
+        const { tab, tabContent } = await createTabWithContent('Suspicious points');
+        const top10HltvPlayers = await getTop10HltvPlayers();
         if (player.games.some(g => g.dataSource === 'hltv')) {
             return;
         }
         else if(matchesCount > 10) {
-            suspiciousPoints.forEach(async sp => {
-                let innerDiv =  document.createElement('div');
-                let innerP = document.createElement('p');
+            suspiciousPoints.forEach(sp => {
+                const innerDiv =  document.createElement('div');
+                const innerP = document.createElement('p');
                 innerP.className = 'cheat-detector-paragraph';
                 innerP.textContent = sp.name + ': ' + sp.points + "/" + sp.all + " (" + sp.suspiciousBehaviour + ")";
                 innerDiv.appendChild(innerP)
 
-                let percent = sp.all / 100 * sp.points * 100;
-                let innerPb = document.createElement('div');
+                const percent = sp.all / 100 * sp.points * 100;
+                const innerPb = document.createElement('div');
                 innerPb.className = 'progress_bar';
                 innerPb.style.width = percent + '%';
 
@@ -368,8 +369,7 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
                     innerPb.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgb(0 0 120) 80%)';
                 }
                 
-                const top10HltvPlayers = await getTop10HltvPlayers();
-                let innerAPb = document.createElement('div');
+                const innerAPb = document.createElement('div');
                 innerAPb.className = 'achievement_progress_bar_ctn';
                 innerAPb.style.width = '97%';
                 innerDiv.title = 'Better ' + sp.name.toLowerCase() + ' than ' + sp.points + ' of TOP ' + sp.all +' HLTV players' + (sp.points > 0 ? '\nBetter than:' + sp.betterThan.map(bt => {
@@ -383,7 +383,7 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
                 innerDiv.appendChild(innerAPb);
                 tabContent.appendChild(innerDiv);
             })
-            let innerP = document.createElement('p');
+            const innerP = document.createElement('p');
             innerP.textContent = 'Source data: ' + dataSource + ', Matches: ' + matchesCount;
             innerP.style.textAlign = 'center';
             tabContent.appendChild(innerP);
@@ -397,10 +397,10 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
 
 async function createCheaterDiv(player, skillCalculationsPromise) {
     return skillCalculationsPromise.then(v => {
-        let matchesCount = v.matchesCount;
-        let cheaterPercentage = v.cheaterPercentage > 1 ? v.cheaterPercentage : 0;
+        const matchesCount = v.matchesCount;
+        const cheaterPercentage = v.cheaterPercentage > 1 ? v.cheaterPercentage : 0;
         const isHltvPlayer = player.games.some(g => g.dataSource === 'hltv');
-        let cheaterInfoTextElement = document.createElement((cheaterPercentage < 50 || isHltvPlayer) ? 'h2' : 'h1');
+        const cheaterInfoTextElement = document.createElement((cheaterPercentage < 50 || isHltvPlayer) ? 'h2' : 'h1');
         cheaterInfoTextElement.className = 'cheat-percentage-value';
         cheaterInfoTextElement.textContent = 'Cheater ' + cheaterPercentage + '%';
 
@@ -436,10 +436,10 @@ async function createCheaterDiv(player, skillCalculationsPromise) {
 }
 
 async function createButtonsDiv(player, skillCalculationsPromise) {
-    let buttonsDiv = document.createElement('div');
+    const buttonsDiv = document.createElement('div');
     buttonsDiv.style.marginTop = '5px';
 
-    let buttonsDiv1 = document.createElement('div');
+    const buttonsDiv1 = document.createElement('div');
     buttonsDiv1.className = 'cheat-detector-buttons center'
 
     const buttonSwitchDataSource = createSwitchButton();
@@ -450,7 +450,7 @@ async function createButtonsDiv(player, skillCalculationsPromise) {
     buttonsDiv1.appendChild(buttonLeetify);
     buttonsDiv.appendChild(buttonsDiv1);
 
-    let buttonsDiv2 = document.createElement('div');
+    const buttonsDiv2 = document.createElement('div');
     buttonsDiv2.className = 'cheat-detector-buttons center'
     buttonsDiv2.style.marginTop = '3px';
 
@@ -492,14 +492,13 @@ function createCommentButton(player, skillCalculationsPromise) {
             return commentButton;
         }
 
-        let sp = scp.suspiciousPoints.filter(x => x.points > 0);
+        const sp = scp.suspiciousPoints.filter(x => x.points > 0);
         let comment = '';
         const top10HltvPlayers = await getTop10HltvPlayers();
-        let betterThan;
         sp.sort(function(a, b){return b.points - a.points}).forEach(x => {
             comment += '\n' + x.name + ' ' + x.points + ' / ' + x.all + ' (' + x.suspiciousBehaviour + ')';
         })
-        betterThan = '\nBetter than:' + [... new Set(sp.flatMap(x => x.betterThan.map(z => z.enemySteamId64)))].map(x => {
+        const betterThan = '\nBetter than:' + [... new Set(sp.flatMap(x => x.betterThan.map(z => z.enemySteamId64)))].map(x => {
             return ' ' + top10HltvPlayers.find(t => t.steam64Id === x).nickname;
         });
         commentButton.onclick = () => {
@@ -533,11 +532,11 @@ function createSwitchButton(requestedDataSource) {
     const sourceButton = document.createElement('button');
 
     if(!requestedDataSource) {
-        let sources = ['all', 'premier', 'faceit', 'wingman', 'premier+wgm'];
+        const sources = ['all', 'premier', 'faceit', 'wingman', 'premier+wgm'];
         sourceButton.innerText = 'Switch source';
         sourceButton.className = 'btn_green_white_innerfade btn_large';
         sourceButton.onclick = () => {
-            let newSourceIndex = sources.indexOf(dataSource) + 1;
+            const newSourceIndex = sources.indexOf(dataSource) + 1;
             if (newSourceIndex === sources.length) newSourceIndex = 0;
             dataSource = sources[newSourceIndex];
             this.run();
@@ -556,18 +555,18 @@ function createSwitchButton(requestedDataSource) {
 }
 
 async function getPlayerData(id) {
-    return fetch(`https://api.leetify.com/api/compare?friendName=${id}&period=2`).then(res => res.json()).catch(err => { throw err });
+    return fetch(`https://api.leetify.com/api/compare?friendName=${id}&period=2`).then(res => res.json()).catch(err => { console.error(err); throw err; }).finally(() => console.info('Player data API called'));
 }
 
 async function getPlayerDetailsData(id) {
-    return fetch(`https://api.leetify.com/api/profile/${id}`).then(res => res.json()).catch(err => { throw err });
+    return fetch(`https://api.leetify.com/api/profile/${id}`).then(res => res.json()).catch(err => { console.error(err); throw err; }).finally(() => console.info('Player details API called'));
 }
 
 function setCache(key, data) {
     let obj = {};
     obj[key] = JSON.stringify(data);
 
-    chrome.storage.local.set(obj);
+    chrome.storage.local.set(obj).then(() => console.info("Data cached"));
 }
 
 async function getCache(key) {
@@ -584,7 +583,7 @@ function getSuspiciousPoints(comparisonResult) {
     let suspPoints = [];
     comparisonResult.forEach(singleComparison => {
         singleComparison.stats.forEach(stats => {
-            let sp = suspPoints.find(s => s.key == stats.key);
+            const sp = suspPoints.find(s => s.key == stats.key);
             if (sp) {
                 sp.all++;
                 if (stats.checkingMethod == "biggerBetter" && stats.playerValue >= stats.topNHltvPlayerValue) {
@@ -645,9 +644,9 @@ function getSuspiciousPoints(comparisonResult) {
 
 function getCordErrorForWeapon(s, cordLimit) {
     let sum = 0;
-    let nonEmptyCords = s.coords.filter(c => c.playerX !== null && c.playerY !== null);
-    let limitedCords = nonEmptyCords.slice(0, cordLimit ?? nonEmptyCords.length - 1);
-    for (let c of limitedCords) {
+    const nonEmptyCords = s.coords.filter(c => c.playerX !== null && c.playerY !== null);
+    const limitedCords = nonEmptyCords.slice(0, cordLimit ?? nonEmptyCords.length - 1);
+    for (const c of limitedCords) {
         sum += this.getCordErrorValue(c);
     }
     return {
@@ -666,7 +665,7 @@ function betterThan(player, topNHltvPlayersPromise) {
         comparisons: [],
         info: {}
     };
-    let matches = player?.games.filter(x => x.isCs2);
+    const matches = player?.games.filter(x => x.isCs2);
     if(!matches || matches.length === 0) {
         playerComparisons.stats = [];
         playerComparisons.info.matchesCount = 0;
@@ -686,14 +685,14 @@ function betterThan(player, topNHltvPlayersPromise) {
         playerComparison.sprayComparisons = [];
 
         topNHltvPlayer.sprays.forEach((topNHltvPlayerspray) => {
-            let weaponLabel = topNHltvPlayerspray.weaponLabel;
-            let playerSpray = player.sprays.find(s => s.weaponLabel === weaponLabel);
+            const weaponLabel = topNHltvPlayerspray.weaponLabel;
+            const playerSpray = player.sprays.find(s => s.weaponLabel === weaponLabel);
             if (!playerSpray)
                 return;
-            let max = playerSpray.coords.length > topNHltvPlayerspray.coords.length ? topNHltvPlayerspray.coords.length : playerSpray.coords.length;
+            const max = playerSpray.coords.length > topNHltvPlayerspray.coords.length ? topNHltvPlayerspray.coords.length : playerSpray.coords.length;
 
-            let playerRecoil = getCordErrorForWeapon(playerSpray, max);
-            let topNHltvPlayerRecoil = getCordErrorForWeapon(topNHltvPlayerspray, max);
+            const playerRecoil = getCordErrorForWeapon(playerSpray, max);
+            const topNHltvPlayerRecoil = getCordErrorForWeapon(topNHltvPlayerspray, max);
 
             playerComparison.sprayComparisons.push({
                 WeaponLabel: weaponLabel,
@@ -703,23 +702,23 @@ function betterThan(player, topNHltvPlayersPromise) {
             });
         });
 
-        let sprayControlOverall = toValue(playerComparison.sprayComparisons.map(sc => sc.PlayerError), playerComparison.sprayComparisons.map(sc => sc.topNHltvPlayerError), false);
-        let sprayControlAK = [playerComparison.sprayComparisons.find(sc => sc.WeaponLabel === 'AK-47').PlayerError, playerComparison.sprayComparisons.find(sc => sc.WeaponLabel === 'AK-47').topNHltvPlayerError];
+        const sprayControlOverall = toValue(playerComparison.sprayComparisons.map(sc => sc.PlayerError), playerComparison.sprayComparisons.map(sc => sc.topNHltvPlayerError), false);
+        const sprayControlAK = [playerComparison.sprayComparisons.find(sc => sc.WeaponLabel === 'AK-47').PlayerError, playerComparison.sprayComparisons.find(sc => sc.WeaponLabel === 'AK-47').topNHltvPlayerError];
 
 
         if (dataSource !== 'all' && dataSource !== 'premier+wgm') {
-            let src = (dataSource === 'premier' ? 'matchmaking' : dataSource);
+            const src = (dataSource === 'premier' ? 'matchmaking' : dataSource);
                 src = (dataSource === 'wingman' ? 'matchmaking_wingman' : src);
             matches = matches.filter(m => m.dataSource === src);
         } else if (dataSource === 'premier+wgm') {
             matches = matches.filter(m => m.dataSource === 'matchmaking' || m.dataSource === 'matchmaking_wingman');
         }
-        let reactionTimes = toMs(matches.map(g => g.playerStats[0].reactionTime), topNHltvPlayer.games.map(g => g.playerStats[0].reactionTime));
-        let preaaim = toValue(matches.map(g => g.playerStats[0].preaim), topNHltvPlayer.games.map(g => g.playerStats[0].preaim), false);
-        let accuracyEnemySpotted = toValue(matches.map(g => g.playerStats[0].accuracyEnemySpotted), topNHltvPlayer.games.map(g => g.playerStats[0].accuracyEnemySpotted), true);
-        let accuracy = toValue(matches.map(g => g.playerStats[0].accuracy), topNHltvPlayer.games.map(g => g.playerStats[0].accuracy), true);
-        let accuracyHead = toValue(matches.map(g => g.playerStats[0].accuracyHead), topNHltvPlayer.games.map(g => g.playerStats[0].accuracyHead), true);
-        let sprayAccuracy = toValue(matches.map(g => g.playerStats[0].sprayAccuracy), topNHltvPlayer.games.map(g => g.playerStats[0].sprayAccuracy), true);
+        const reactionTimes = toMs(matches.map(g => g.playerStats[0].reactionTime), topNHltvPlayer.games.map(g => g.playerStats[0].reactionTime));
+        const preaaim = toValue(matches.map(g => g.playerStats[0].preaim), topNHltvPlayer.games.map(g => g.playerStats[0].preaim), false);
+        const accuracyEnemySpotted = toValue(matches.map(g => g.playerStats[0].accuracyEnemySpotted), topNHltvPlayer.games.map(g => g.playerStats[0].accuracyEnemySpotted), true);
+        const accuracy = toValue(matches.map(g => g.playerStats[0].accuracy), topNHltvPlayer.games.map(g => g.playerStats[0].accuracy), true);
+        const accuracyHead = toValue(matches.map(g => g.playerStats[0].accuracyHead), topNHltvPlayer.games.map(g => g.playerStats[0].accuracyHead), true);
+        const sprayAccuracy = toValue(matches.map(g => g.playerStats[0].sprayAccuracy), topNHltvPlayer.games.map(g => g.playerStats[0].sprayAccuracy), true);
         matchesCount = matches.length;
 
         if(dataSource === 'all' || matchesCount === maxMatchesCount || matchesCount === allMatchesCount) {
@@ -827,15 +826,15 @@ function betterThan(player, topNHltvPlayersPromise) {
 }
 
 function toMs(playerValueData, hltvPlayerValueData) {
-    let playerValue = Math.round(playerValueData.reduce((a, b) => a + b, 0) / playerValueData.length * 1000);
-    let hltvPlayerValue = Math.round(hltvPlayerValueData.reduce((a, b) => a + b, 0) / hltvPlayerValueData.length * 1000);
+    const playerValue = Math.round(playerValueData.reduce((a, b) => a + b, 0) / playerValueData.length * 1000);
+    const hltvPlayerValue = Math.round(hltvPlayerValueData.reduce((a, b) => a + b, 0) / hltvPlayerValueData.length * 1000);
 
     return [playerValue, hltvPlayerValue];
 }
 
 function toValue(playerValueData, hltvPlayerValueData, percent = false) {
-    let playerValue = Math.round(playerValueData.reduce((a, b) => a + b, 0) / playerValueData.length * (percent ? 100 : 1) * 100) / 100;
-    let hltvPlayerValue = Math.round(hltvPlayerValueData.reduce((a, b) => a + b, 0) / hltvPlayerValueData.length * (percent ? 100 : 1) * 100) / 100;
+    const playerValue = Math.round(playerValueData.reduce((a, b) => a + b, 0) / playerValueData.length * (percent ? 100 : 1) * 100) / 100;
+    const hltvPlayerValue = Math.round(hltvPlayerValueData.reduce((a, b) => a + b, 0) / hltvPlayerValueData.length * (percent ? 100 : 1) * 100) / 100;
 
     return [playerValue, hltvPlayerValue];
 }
