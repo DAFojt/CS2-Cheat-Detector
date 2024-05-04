@@ -153,7 +153,7 @@ function getPlayersDataFromApi(steamIds64) {
 }
 
 function getExtDiv() {
-    const extDiv = document.getElementsByClassName('responsive_status_info')[0];
+    let extDiv = document.getElementsByClassName('responsive_status_info')[0];
     if (!extDiv)
         extDiv = document.getElementsByClassName('profile_rightcol')[0];
     return extDiv;
@@ -493,29 +493,64 @@ function createCommentButton(player, skillCalculationsPromise) {
         }
 
         const sp = scp.suspiciousPoints.filter(x => x.points > 0);
-        let comment = '';
+        let comment = [];
         const top10HltvPlayers = await getTop10HltvPlayers();
         sp.sort(function(a, b){return b.points - a.points}).forEach(x => {
-            comment += '\n' + x.name + ' ' + x.points + ' / ' + x.all + ' (' + x.suspiciousBehaviour + ')';
+            comment.push(x.name + ' ' + x.points + ' / ' + x.all + ' (' + x.suspiciousBehaviour + ')');
         })
         const betterThan = '\nBetter than:' + [... new Set(sp.flatMap(x => x.betterThan.map(z => z.enemySteamId64)))].map(x => {
             return ' ' + top10HltvPlayers.find(t => t.steam64Id === x).nickname;
         });
         commentButton.onclick = () => {
-            steamCommentArea.value = 'Cheat detector audit:' +
-                '\nThis account has better statistics than TOP ' + sp[0].all + ' HLTV players in the:' +
-                comment +
-                betterThan +
-                '\n\nHe is '+ scp.cheaterPercentage +'% cheater, checked automatically by CS2 Cheat Detector Chrome extension' +
-                '\nData source: ' + dataSource + ' matches, demos analyzed: ' + scp.matchesCount
-
             steamCommentArea.focus();
-            steamCommentArea.click();
-            // steamCommentButton.click(); // to do - cached setting in extension panel that can be checked to auto send the comment
+            
+            let delay = 0;
+            delay += addTextFancy(steamCommentArea, 'Cheat detector audit:', delay, 50);
+            newLine(steamCommentArea, delay);
+            delay += addTextFancy(steamCommentArea, 'This account has better statistics than TOP ' + sp[0].all + ' HLTV players in the:', delay, 25);
+            newLine(steamCommentArea, delay);
+            for(let i = 0; i < comment.length; i++) {
+                newLine(steamCommentArea, delay + 500);
+                delay += addTextLineAfterDelay(steamCommentArea, comment[i], delay, 500);
+            }
+            delay += addTextLineAfterDelay(steamCommentArea, betterThan, delay, 500);
+            newLine(steamCommentArea, delay, 2);
+            delay += addTextFancy(steamCommentArea, 'He is '+ scp.cheaterPercentage +'% cheater, checked automatically by CS2 Cheat Detector Chrome extension', delay, 35, 500);
+            newLine(steamCommentArea, delay + 500);
+            delay += addTextLineAfterDelay(steamCommentArea, 'Data source: ' + dataSource + ' matches, demos analyzed: ' + scp.matchesCount, delay, 500);
+
             commentButton.disabled = true;
         }
     })
     return commentButton;
+}
+
+function addTextFancy(element, line, startDelay = 0, charDelay = 50, additionalLineStartDelay = 0) {
+    setTimeout(function() {
+        for(let i = 0; i < line.length; i++){
+            setTimeout(function(){
+                element.value += line[i];
+                element.click();
+            }, i * charDelay);
+        }
+    }, startDelay + additionalLineStartDelay);
+    
+    return charDelay * line.length + additionalLineStartDelay;
+}
+
+function addTextLineAfterDelay(element, line, startDelay = 0, delay = 500) {
+    setTimeout(function(){        
+        element.value += line;
+        element.click();
+    }, startDelay + delay);
+    return delay;
+}
+
+function newLine(element, startDelay, lines = 1) {
+    setTimeout(function(){        
+        for(let i = 0; i < lines; i++) element.value += '\n';
+    }, startDelay);
+    
 }
 
 function createLeetifyButton(player) {
@@ -665,7 +700,7 @@ function betterThan(player, topNHltvPlayersPromise) {
         comparisons: [],
         info: {}
     };
-    const matches = player?.games.filter(x => x.isCs2);
+    let matches = player?.games.filter(x => x.isCs2);
     if(!matches || matches.length === 0) {
         playerComparisons.stats = [];
         playerComparisons.info.matchesCount = 0;
@@ -707,7 +742,7 @@ function betterThan(player, topNHltvPlayersPromise) {
 
 
         if (dataSource !== 'all' && dataSource !== 'premier+wgm') {
-            const src = (dataSource === 'premier' ? 'matchmaking' : dataSource);
+            let src = (dataSource === 'premier' ? 'matchmaking' : dataSource);
                 src = (dataSource === 'wingman' ? 'matchmaking_wingman' : src);
             matches = matches.filter(m => m.dataSource === src);
         } else if (dataSource === 'premier+wgm') {
