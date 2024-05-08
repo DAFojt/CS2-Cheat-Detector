@@ -43,6 +43,9 @@ p {
 .cheat-percentage-high {
     color: #a94847;
 }
+.cheat-percentage-critical {
+    color: #a96e47;
+}
 
 .show-hide-img-button {
     max-width: 10%;
