@@ -51,3 +51,13 @@ p {
     max-width: 10%;
     height: auto;
 }
+
+.cheat-detector-buttons {
+    display: flex;
+    gap: 1px;
+}
+
+.superfluousButton {
+    color: #8c9b57 !important;
+    background: linear-gradient(to bottom, #657d11 5%, #536904 95%) !important;
+}

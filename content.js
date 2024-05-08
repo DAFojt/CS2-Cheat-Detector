@@ -7,7 +7,7 @@ var dataSource = 'all';
 const maxMatchesCount = 60;
 const minMatchesCount = 10;
 
-var showAllSprays = true; //to do move to global settings
+var showAllSprays = false; //to do move to global settings
 
 async function run() {
     playerData = playerData ?? await getPlayerData(window.location.toString());
@@ -88,17 +88,17 @@ async function createInterface(playerData, skillCalculationsPromise, playerDetai
 async function calculate(player, topNHltvPlayers) {
     return topNHltvPlayers.then(c => {
         const result = betterThan(player, c);
-        const suspiciousPoints = getSuspiciousPoints(result.comparisons);
 
         let spSum = 0;
         let all = 0;
-        let sp = suspiciousPoints.filter(x => x.include).sort(function(a, b){return b.points - a.points}).slice(0, Math.round(suspiciousPoints.filter(x => x.include).length / 2));
-        sp.forEach(sp => {
+        let newSp = result.getAllSuspiciousPoints();
+        newSp.sort(function(a, b){return b.points - a.points}).slice(0, Math.round(newSp.length / 2)).forEach(sp => {
             spSum += sp.points;
             all += sp.all;
         })
-        const cheaterPercentage = result.info.matchesCount ? Math.round(sigmoidFilter(spSum / all * 100) * 100) : 0;
-        return { suspiciousPoints, matchesCount: result.info.matchesCount, cheaterPercentage: cheaterPercentage }
+        const cheaterPercentage = result.matchesCount ? Math.round(sigmoidFilter(spSum / all * 100) * 100) : 0;
+
+        return { result, matchesCount: result.matchesCount, cheaterPercentage: cheaterPercentage }
     })
 }
 
@@ -344,31 +344,32 @@ async function createPlatformBansTab(detailsPromise) {
 async function createSuspiciousTab(player, skillCalculationsPromise) {
     return skillCalculationsPromise.then(async skillCalculations => {
         const matchesCount = skillCalculations.matchesCount;
-        const suspiciousPoints = skillCalculations.suspiciousPoints;
+        const result = skillCalculations.result;
         const { tab, tabContent } = await createTabWithContent('Suspicious points');
         const top10HltvPlayers = await getTop10HltvPlayers();
-        if (player.games.some(g => g.dataSource === 'hltv')) {
+        if (isHltvProPlayer(player)) {
             return;
         }
         else if(matchesCount > 10) {
-            suspiciousPoints.forEach(sp => {
+            result.avaiableStats.forEach(statistic => {
+                const suspiciousPoints = skillCalculations.result.getSuspiciousPointsByKey(statistic.key);
                 const innerDiv =  document.createElement('div');
                 const innerP = document.createElement('p');
                 innerP.className = 'cheat-detector-paragraph';
-                innerP.textContent = sp.name + ': ' + sp.points + "/" + sp.all + " (" + sp.suspiciousBehaviour + ")";
+                innerP.textContent = suspiciousPoints.name + ': ' + suspiciousPoints.points + "/" + suspiciousPoints.all + " (" + suspiciousPoints.suspiciousBehaviour + ")";
                 innerDiv.appendChild(innerP)
 
-                const percent = 100 / sp.all * sp.points;
+                const percent = 100 / suspiciousPoints.all * suspiciousPoints.points;
 
                 const innerPb = document.createElement('div');
                 innerPb.className = 'progress_bar';
                 innerPb.style.width = '0%';
 
-                for(let i = 0; i <= percent; i++){
+                for(let i = 0; i <= percent; i++) {
                     setTimeout(function(){
                         innerPb.style.width = i + '%';
 
-                        if(sp.include) {
+                        if(statistic.includeInCheaterPercentage) {
                             if(i < 40)
                                 innerPb.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgb(0 200 0) 80%)';
                             else if(i >= 40 && i < 70)
@@ -385,13 +386,16 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
                 const innerAPb = document.createElement('div');
                 innerAPb.className = 'achievement_progress_bar_ctn';
                 innerAPb.style.width = '97%';
-                innerDiv.title = 'Better ' + sp.name.toLowerCase() + ' than ' + sp.points + ' of TOP ' + sp.all +' HLTV players' + 
-                (sp.points > 0 ? '\nBetter than:' + sp.betterThan.map(bt => {
-                    hltvPlayerNickname = top10HltvPlayers.find(t => t.steam64Id === bt.enemySteamId64).nickname;
-                    return '\n' + hltvPlayerNickname + ' ' + bt.enemyValue + bt.unit + ' vs ' + bt.playerValue + bt.unit + 
+                const betterThan = skillCalculations.result.getEnemysSteamId64FromStatByKeyWherePlayerIsBetter(statistic.key);
+                innerDiv.title = 'Better ' + statistic.name.toLowerCase() + ' than ' + statistic.points + ' of TOP ' + statistic.all +' HLTV players' 
+                + (suspiciousPoints.points > 0 ? '\nBetter than:' + betterThan.map(bt => {
+                    hltvPlayerNickname = top10HltvPlayers.find(t => t.steam64Id === bt).nickname;
+                    const stat = skillCalculations.result.getStatByKeyAndEnemySteamId64(statistic.key, bt);
+                    return '\n' + hltvPlayerNickname + ' ' + stat.topNHltvPlayerValue + stat.unit + ' vs ' + stat.playerValue + stat.unit + 
                     (bt.samplesLimit ? ' (samples: ' + bt.samplesLimit + ')' : '');
-                }) : '');
-                if(!sp.include) {
+                }) : '')
+                ;
+                if(!statistic.includeInCheaterPercentage) {
                     innerDiv.title += '\nThis statistic is not included in cheater percentage calculations';
                 }
                 innerAPb.appendChild(innerPb);
@@ -471,39 +475,32 @@ async function createButtonsDiv(player, skillCalculationsPromise) {
     const buttonsDiv = document.createElement('div');
     buttonsDiv.style.marginTop = '5px';
 
-    const buttonsRow1 = document.createElement('div');
-    buttonsRow1.className = 'cheat-detector-buttons center'
+    const buttonsRow = document.createElement('div');
+    buttonsRow.className = 'cheat-detector-buttons'
 
-    const buttonSwitchDataSource = createSwitchButton();
-    buttonsRow1.appendChild(buttonSwitchDataSource);
+    const allButton = createSwitchButton('All', player.games.length);
+    buttonsRow.appendChild(allButton);
+    const premierButton = createSwitchButton('Premier', player.games.filter(g => g.dataSource === 'matchmaking').length);
+    buttonsRow.appendChild(premierButton);
+    const faceitButton = createSwitchButton('Faceit', player.games.filter(g => g.dataSource === 'faceit').length);
+    buttonsRow.appendChild(faceitButton);
+    const wingmanButton = createSwitchButton('Wingman', player.games.filter(g => g.dataSource === 'matchmaking_wingman').length);
+    buttonsRow.appendChild(wingmanButton);
+    const premierWgmButton = createSwitchButton('Premier+Wgm', player.games.filter(g => g.dataSource === 'matchmaking').length + player.games.filter(g => g.dataSource === 'matchmaking_wingman').length);
+    buttonsRow.appendChild(premierWgmButton);
+    buttonsDiv.appendChild(buttonsRow);
+
+    const buttonsRow1 = document.createElement('div');
+    buttonsRow1.className = 'cheat-detector-buttons'
+    buttonsRow1.style.marginTop = '3px';
+
     const buttonComment = createCommentButton(player, skillCalculationsPromise);
     buttonsRow1.appendChild(buttonComment);
+    const reportButton = createReportButton(player, skillCalculationsPromise);
+    buttonsRow1.appendChild(reportButton);
     const buttonLeetify = createLeetifyButton(player);
     buttonsRow1.appendChild(buttonLeetify);
     buttonsDiv.appendChild(buttonsRow1);
-
-    const buttonsRow2 = document.createElement('div');
-    buttonsRow2.className = 'cheat-detector-buttons center'
-    buttonsRow2.style.marginTop = '3px';
-
-    const allButton = createSwitchButton('All');
-    buttonsRow2.appendChild(allButton);
-    const premierButton = createSwitchButton('Premier');
-    buttonsRow2.appendChild(premierButton);
-    const faceitButton = createSwitchButton('Faceit');
-    buttonsRow2.appendChild(faceitButton);
-    const wingmanButton = createSwitchButton('Wingman');
-    buttonsRow2.appendChild(wingmanButton);
-    const premierWgmButton = createSwitchButton('Premier+Wgm');
-    buttonsRow2.appendChild(premierWgmButton);
-    buttonsDiv.appendChild(buttonsRow2);
-
-    const buttonsRow3 = document.createElement('div');
-    buttonsRow3.className = 'cheat-detector-buttons center'
-    buttonsRow3.style.marginTop = '3px';
-    const reportButton = createReportButton(skillCalculationsPromise);
-    buttonsRow3.appendChild(reportButton);
-    buttonsDiv.appendChild(buttonsRow3);
 
     if (player.games.some(g => g.dataSource === 'hltv')) {
         buttonSwitchDataSource.disabled = true;
@@ -518,14 +515,15 @@ async function createButtonsDiv(player, skillCalculationsPromise) {
     return buttonsDiv;
 }
 
-function createReportButton(skillCalculationsPromise) {
+function createReportButton(player, skillCalculationsPromise) {
     const reportButton = document.createElement('button');
     reportButton.innerText = 'Steam report';
     reportButton.className = 'btn_green_white_innerfade btn_large';
 
     skillCalculationsPromise.then(skillCalculations => {
-        const suspiciousBehaviours = [...new Set(skillCalculations.suspiciousPoints.filter(sp => 100/sp.all*sp.points >= 80 && sp.include).map(sp => sp.suspiciousBehaviour))];
-        if(suspiciousBehaviours.length === 0 || isUserProfile() || !isLoggedIn()) {
+        const suspiciousPoints = skillCalculations.result.getAllSuspiciousPoints();
+        const suspiciousBehaviours = [...new Set(suspiciousPoints.filter(sp => 100/sp.all*sp.points >= 80).map(sp => sp.suspiciousBehaviour))];
+        if(suspiciousBehaviours.length === 0 || isUserProfile() || !isLoggedIn() || isHltvProPlayer(player)) {
             reportButton.disabled = true;
             return;
         }
@@ -534,7 +532,7 @@ function createReportButton(skillCalculationsPromise) {
             const dropdownButton = document.getElementById('profile_action_dropdown_link');
             dropdownButton.click();
             const dropdown = (document.getElementsByClassName('popup_body popup_menu shadow_content'))[0];
-            const reportButton = Array.from(dropdown.children).find(c => c.children[0].src.includes('images/skin_1/notification_icon_flag.png'));
+            const reportButton = Array.from(dropdown.children).find(c => (c.children[0].src+'').includes('notification_icon_flag.png'));
             reportButton.click();
             setTimeout(() => {
                 const reportReasonsList = document.getElementById('step_content');
@@ -550,7 +548,7 @@ function createReportButton(skillCalculationsPromise) {
                     const gamesList = document.getElementById('select_recently_played');
                     Array.from(gamesList.children).find(x => x.outerText === 'Counter-Strike 2').click();
                     const finalReportButton = document.getElementById('btn_submit_report');
-                    //finalReportButton.click();
+                    finalReportButton.click();
                 }, 1000);
             }, 1000);
         }
@@ -560,11 +558,15 @@ function createReportButton(skillCalculationsPromise) {
 }
 
 function isUserProfile() {
-    return !!Array.from(document.getElementsByClassName('btn_profile_action btn_medium')).find(btn => btn.href?.includes('edit/info') ?? false);
+    return !!Array.from(document.getElementsByClassName('btn_profile_action btn_medium'))?.some(btn => btn.href?.includes('edit/info') ?? false);
 }
 
 function isLoggedIn() {
-    return !Array.from(document.getElementsByClassName('global_action_link'))?.find(btn => btn.href?.includes('https://steamcommunity.com/login/') ?? false);
+    return !Array.from(document.getElementsByClassName('global_action_link'))?.some(btn => btn.href?.includes('https://steamcommunity.com/login/') ?? false);
+}
+
+function isHltvProPlayer(player) {
+    return !!player.games.some(g => g.dataSource === 'hltv');
 }
 
 function createCommentButton(player, skillCalculationsPromise) {
@@ -579,23 +581,21 @@ function createCommentButton(player, skillCalculationsPromise) {
             commentButton.disabled = true;
             return commentButton;
         }
-
-        const sp = scp.suspiciousPoints.filter(x => x.points > 0);
+        const suspiciousPoints = scp.result.getAllSuspiciousPoints().filter(x => x.points > 0);
         let comment = [];
         const top10HltvPlayers = await getTop10HltvPlayers();
-        sp.sort(function(a, b){return b.points - a.points}).forEach(x => {
+        suspiciousPoints.sort(function(a, b){return b.points - a.points}).forEach(x => {
             comment.push(x.name + ' ' + x.points + ' / ' + x.all + ' (' + x.suspiciousBehaviour + ')');
         })
-        const betterThan = '\nBetter than:' + [... new Set(sp.flatMap(x => x.betterThan.map(z => z.enemySteamId64)))].map(x => {
+        const betterThan = '\nBetter than:' + [... new Set(scp.result.avaiableStats.flatMap(av => scp.result.getEnemysSteamId64FromStatByKeyWherePlayerIsBetter(av.key)))].map(x => {
             return ' ' + top10HltvPlayers.find(t => t.steam64Id === x).nickname;
         });
         commentButton.onclick = () => {
             steamCommentArea.focus();
-            
             let delay = 0;
             delay += addTextFancy(steamCommentArea, 'Cheat detector audit:', delay, 50);
             newLine(steamCommentArea, delay);
-            delay += addTextFancy(steamCommentArea, 'This account has better statistics than TOP ' + sp[0].all + ' HLTV players in the:', delay, 25);
+            delay += addTextFancy(steamCommentArea, 'This account has better statistics than TOP ' + suspiciousPoints[0].all + ' HLTV players in the:', delay, 25);
             newLine(steamCommentArea, delay);
             for(let i = 0; i < comment.length; i++) {
                 newLine(steamCommentArea, delay + 500);
@@ -607,6 +607,7 @@ function createCommentButton(player, skillCalculationsPromise) {
             newLine(steamCommentArea, delay + 500);
             delay += addTextLineAfterDelay(steamCommentArea, 'Data source: ' + dataSource + ' matches, demos analyzed: ' + scp.matchesCount, delay, 500);
 
+            commentButton.click();
             commentButton.disabled = true;
         }
     })
@@ -651,29 +652,18 @@ function createLeetifyButton(player) {
     return leetifyAnchor;
 }
 
-function createSwitchButton(requestedDataSource) {
+function createSwitchButton(requestedDataSource, matchesCount) {
     const sourceButton = document.createElement('button');
-
-    if(!requestedDataSource) {
-        const sources = ['all', 'premier', 'faceit', 'wingman', 'premier+wgm'];
-        sourceButton.innerText = 'Switch source';
-        sourceButton.className = 'btn_green_white_innerfade btn_large';
-        sourceButton.onclick = () => {
-            const newSourceIndex = sources.indexOf(dataSource) + 1;
-            if (newSourceIndex === sources.length) newSourceIndex = 0;
-            dataSource = sources[newSourceIndex];
-            this.run();
-        }
+    sourceButton.innerText = requestedDataSource;
+    sourceButton.classList.add('btn_green_white_innerfade');
+    sourceButton.classList.add('btn_large');
+    if(matchesCount < minMatchesCount){ 
+        sourceButton.classList.add('superfluousButton');
     }
-    else {
-        sourceButton.innerText = requestedDataSource;
-        sourceButton.className = 'btn_green_white_innerfade btn_large';
-        sourceButton.onclick = () => {
-            dataSource = requestedDataSource.toLowerCase();
-            this.run();
-        }
+    sourceButton.onclick = () => {
+        dataSource = requestedDataSource.toLowerCase();
+        this.run();
     }
-
     return sourceButton;
 }
 
@@ -702,73 +692,6 @@ async function getCache(key) {
     });
 }
 
-function getSuspiciousPoints(comparisonResult) {
-    let suspPoints = [];
-    comparisonResult.forEach(singleComparison => {
-        singleComparison.stats.forEach(stats => {
-            const sp = suspPoints.find(s => s.key == stats.key);
-            if (sp) {
-                sp.all++;
-                if (stats.checkingMethod == "biggerBetter" && stats.playerValue >= stats.topNHltvPlayerValue) {
-                    sp.points++;
-                    sp.betterThan.push({
-                        enemySteamId64: stats.hltvPlayerSteam64Id,
-                        playerValue: stats.playerValue,
-                        enemyValue: stats.topNHltvPlayerValue,
-                        unit: stats.unit,
-                        samplesLimit: stats.samplesLimit
-                    });
-                }
-                else if (stats.checkingMethod == "smallerBetter" && stats.playerValue <= stats.topNHltvPlayerValue) {
-                    sp.points++;
-                    sp.betterThan.push({
-                        enemySteamId64: stats.hltvPlayerSteam64Id,
-                        playerValue: stats.playerValue,
-                        enemyValue: stats.topNHltvPlayerValue,
-                        unit: stats.unit,
-                        samplesLimit: stats.samplesLimit
-                    });
-                }
-            } else {
-                let n = {
-                    key: stats.key,
-                    name: stats.name,
-                    unit: stats.unit,
-                    suspiciousBehaviour: stats.suspiciousBehaviour,
-                    all: 1,
-                    betterThan: [],
-                    include: stats.includeInCalculations
-                };
-
-                if (stats.checkingMethod == "biggerBetter" && stats.playerValue >= stats.topNHltvPlayerValue) {
-                    n.points = 1;
-                    n.betterThan = [{
-                        enemySteamId64: stats.hltvPlayerSteam64Id,
-                        playerValue: stats.playerValue,
-                        enemyValue: stats.topNHltvPlayerValue,
-                        unit: stats.unit,
-                        samplesLimit: stats.samplesLimit
-                    }];
-                }
-                else if (stats.checkingMethod == "smallerBetter" && stats.playerValue <= stats.topNHltvPlayerValue) {
-                    n.points = 1;
-                    n.betterThan = [{
-                        enemySteamId64: stats.hltvPlayerSteam64Id,
-                        playerValue: stats.playerValue,
-                        enemyValue: stats.topNHltvPlayerValue,
-                        unit: stats.unit,
-                        samplesLimit: stats.samplesLimit
-                    }];
-                }
-                else n.points = 0;
-
-                suspPoints.push(n);
-            }
-        })
-    })
-    return suspPoints;
-}
-
 function getCordErrorForWeapon(s, cordLimit) {
     let sum = 0;
     const nonEmptyCords = s.coords.filter(c => c.playerX !== null && c.playerY !== null);
@@ -795,7 +718,7 @@ function betterThan(player, topNHltvPlayersPromise) {
     let matches = player?.games.filter(x => x.isCs2);
     if(!matches || matches.length === 0) {
         playerComparisons.stats = [];
-        playerComparisons.info.matchesCount = 0;
+        playerComparisons.matchesCount = 0;
         return playerComparisons;
     }
     let matchesCount;
@@ -809,7 +732,7 @@ function betterThan(player, topNHltvPlayersPromise) {
 
         playerComparison.playerNickname = player.player.nickname;
         playerComparison.topNHltvPlayerNickname = topNHltvPlayer.player.nickname;
-        playerComparison.sprayComparisons = [];
+        let sprayComparisons = [];
 
         topNHltvPlayer.sprays.forEach((topNHltvPlayerspray) => {
             const weaponLabel = topNHltvPlayerspray.weaponLabel;
@@ -821,7 +744,7 @@ function betterThan(player, topNHltvPlayersPromise) {
             const playerRecoil = getCordErrorForWeapon(playerSpray, coordsLimit);
             const topNHltvPlayerRecoil = getCordErrorForWeapon(topNHltvPlayerspray, coordsLimit);
 
-            playerComparison.sprayComparisons.push({
+            sprayComparisons.push({
                 weaponLabel: weaponLabel,
                 playerError: playerRecoil.avgError,
                 topNHltvPlayerError: topNHltvPlayerRecoil.avgError,
@@ -829,8 +752,8 @@ function betterThan(player, topNHltvPlayersPromise) {
             });
         });
 
-        const sprayControlOverall = toValue(playerComparison.sprayComparisons.map(sc => sc.playerError), playerComparison.sprayComparisons.map(sc => sc.topNHltvPlayerError), false);
-        const sprayControlAK = [playerComparison.sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').playerError, playerComparison.sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').topNHltvPlayerError, playerComparison.sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').coordsLimit];
+        const sprayControlOverall = toValue(sprayComparisons.map(sc => sc.playerError), sprayComparisons.map(sc => sc.topNHltvPlayerError), false);
+        const sprayControlAK = [sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').playerError, sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').topNHltvPlayerError, sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').coordsLimit];
 
 
         if (dataSource !== 'all' && dataSource !== 'premier+wgm') {
@@ -858,7 +781,8 @@ function betterThan(player, topNHltvPlayersPromise) {
                 topNHltvPlayerValue: sprayControlOverall[1],
                 hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
                 checkingMethod: "smallerBetter",
-                includeInCalculations: true
+                isPlayerBetter: () => sprayControlOverall[0] < sprayControlOverall[1],
+                includeInCheaterPercentage: true
             });
 
             playerComparison.stats.push({
@@ -870,12 +794,13 @@ function betterThan(player, topNHltvPlayersPromise) {
                 topNHltvPlayerValue: sprayControlAK[1],
                 hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
                 checkingMethod: "smallerBetter",
-                includeInCalculations: true,
+                isPlayerBetter: () => sprayControlAK[0] < sprayControlAK[1],
+                includeInCheaterPercentage: true,
                 samplesLimit: sprayControlAK[2]
             });
 
             if(showAllSprays) {
-                playerComparison.sprayComparisons.filter(x => x.weaponLabel != "AK-47").forEach(spray => {
+                sprayComparisons.filter(x => x.weaponLabel != "AK-47").forEach(spray => {
                     playerComparison.stats.push({
                         key: "spray_control_" + spray.weaponLabel,
                         name: "Spray control " + spray.weaponLabel,
@@ -885,7 +810,8 @@ function betterThan(player, topNHltvPlayersPromise) {
                         topNHltvPlayerValue: spray.topNHltvPlayerError,
                         hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
                         checkingMethod: "smallerBetter",
-                        includeInCalculations: false,
+                        isPlayerBetter: () => spray.playerError < spray.topNHltvPlayerError,
+                        includeInCheaterPercentage: false,
                         samplesLimit: spray.coordsLimit
                     });
                 })
@@ -901,7 +827,8 @@ function betterThan(player, topNHltvPlayersPromise) {
             topNHltvPlayerValue: sprayAccuracy[1],
             hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
             checkingMethod: "biggerBetter",
-            includeInCalculations: true
+            isPlayerBetter: () => sprayAccuracy[0] > sprayAccuracy[1],
+            includeInCheaterPercentage: true
         });
 
         playerComparison.stats.push({
@@ -913,7 +840,8 @@ function betterThan(player, topNHltvPlayersPromise) {
             topNHltvPlayerValue: preaaim[1],
             hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
             checkingMethod: "smallerBetter",
-            includeInCalculations: true
+            isPlayerBetter: () => preaaim[0] < preaaim[1],
+            includeInCheaterPercentage: true
         });
 
         playerComparison.stats.push({
@@ -925,7 +853,8 @@ function betterThan(player, topNHltvPlayersPromise) {
             topNHltvPlayerValue: reactionTimes[1],
             hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
             checkingMethod: "smallerBetter",
-            includeInCalculations: true
+            isPlayerBetter: () => reactionTimes[0] < reactionTimes[1],
+            includeInCheaterPercentage: true
         });
 
         playerComparison.stats.push({
@@ -937,7 +866,8 @@ function betterThan(player, topNHltvPlayersPromise) {
             topNHltvPlayerValue: accuracyEnemySpotted[1],
             hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
             checkingMethod: "biggerBetter",
-            includeInCalculations: true
+            isPlayerBetter: () => accuracyEnemySpotted[0] > accuracyEnemySpotted[1],
+            includeInCheaterPercentage: true
         });
 
         playerComparison.stats.push({
@@ -949,7 +879,8 @@ function betterThan(player, topNHltvPlayersPromise) {
             topNHltvPlayerValue: accuracyHead[1],
             hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
             checkingMethod: "biggerBetter",
-            includeInCalculations: true
+            isPlayerBetter: () => accuracyHead[0] > accuracyHead[1],
+            includeInCheaterPercentage: true
         });
         
         playerComparison.stats.push({
@@ -961,12 +892,29 @@ function betterThan(player, topNHltvPlayersPromise) {
             topNHltvPlayerValue: accuracy[1],
             hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
             checkingMethod: "biggerBetter",
-            includeInCalculations: false
+            isPlayerBetter: () => accuracy[0] > accuracy[1],
+            includeInCheaterPercentage: false
         });
         playerComparisons.comparisons.push(playerComparison);
     });
     playerComparisons.info = {};
-    playerComparisons.info.matchesCount = matchesCount;
+    playerComparisons.matchesCount = matchesCount;
+    playerComparisons.avaiableStats = playerComparisons.comparisons.flatMap(r => r.stats).map(s => ({ key: s.key, name: s.name, includeInCheaterPercentage: s.includeInCheaterPercentage, suspiciousBehaviour: s.suspiciousBehaviour, unit: s.unit })).filter((obj, index, arr) =>{return arr.findIndex(o =>{return JSON.stringify(o) === JSON.stringify(obj)}) === index});
+    playerComparisons.getStatNameByKey = (key) => playerComparisons.avaiableStats.find(s => s.key === key).name
+    playerComparisons.getStatSuspiciousBehaviourByKey = (key) => playerComparisons.avaiableStats.find(s => s.key === key).suspiciousBehaviour
+    playerComparisons.getAllStats = () => playerComparisons.comparisons.flatMap(c => c.stats).reduce((stats, st) => {const key = st.key;if (!stats[key]) {stats[key] = []} stats[key].push(st); return stats;}, {});;
+    playerComparisons.getStatsByKey = (key) => playerComparisons.comparisons.flatMap(c => c.stats).filter(s => s.key === key)
+    playerComparisons.getStatsByKeyLength = (key) => playerComparisons.comparisons.flatMap(c => c.stats).filter(s => s.key === key).length
+    playerComparisons.getStatByKeyAndEnemySteamId64 = (key, hltvPlayerSteam64Id) => playerComparisons.comparisons.flatMap(c => c.stats).find(s => s.key === key && s.hltvPlayerSteam64Id === hltvPlayerSteam64Id)
+    playerComparisons.getStatsByKeyWherePlayerIsBetter = (key) => playerComparisons.getStatsByKey(key).filter(s => s.isPlayerBetter())
+    playerComparisons.getStatsByKeyWherePlayerIsBetterLength = (key) => playerComparisons.getStatsByKey(key).filter(s => s.isPlayerBetter()).length
+    playerComparisons.getStatsByKeyWherePlayerIsWorse = (key) => playerComparisons.getStatsByKey(key).filter(s => !s.isPlayerBetter())
+    playerComparisons.getStatsByKeyWherePlayerIsWorseLength = (key) => playerComparisons.getStatsByKey(key).filter(s => !s.isPlayerBetter()).length
+    playerComparisons.getEnemysSteamId64FromStatByKeyWherePlayerIsBetter = (key) => playerComparisons.getStatsByKey(key).filter(s => s.isPlayerBetter()).map(s => s.hltvPlayerSteam64Id)
+    playerComparisons.getEnemysSteamId64FromStatByKeyWherePlayerIsWorse = (key) => playerComparisons.getStatsByKey(key).filter(s => !s.isPlayerBetter()).map(s => s.hltvPlayerSteam64Id)
+    playerComparisons.getAllSuspiciousPoints = () => playerComparisons.avaiableStats.filter(av => av.includeInCheaterPercentage).map(av => playerComparisons.getSuspiciousPointsByKey(av.key))
+    playerComparisons.getSuspiciousPointsByKey = (key) => { return {points: playerComparisons.getStatsByKeyWherePlayerIsBetterLength(key), all: playerComparisons.getStatsByKeyLength(key), name: playerComparisons.getStatNameByKey(key), suspiciousBehaviour: playerComparisons.getStatSuspiciousBehaviourByKey(key)} };
+
     return playerComparisons;
 }
 
