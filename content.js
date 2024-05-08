@@ -387,8 +387,15 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
                 innerAPb.className = 'achievement_progress_bar_ctn';
                 innerAPb.style.width = '97%';
                 const betterThan = skillCalculations.result.getEnemysSteamId64FromStatByKeyWherePlayerIsBetter(statistic.key);
-                innerDiv.title = 'Better ' + statistic.name.toLowerCase() + ' than ' + statistic.points + ' of TOP ' + statistic.all +' HLTV players' 
-                + (suspiciousPoints.points > 0 ? '\nBetter than:' + betterThan.map(bt => {
+                const worseThan = skillCalculations.result.getEnemysSteamId64FromStatByKeyWherePlayerIsWorse(statistic.key);
+                innerDiv.title = 'Better ' + statistic.name.toLowerCase() + ' than ' + betterThan.length + ' of TOP ' + top10HltvPlayers.length +' HLTV players' 
+                + (betterThan.length > 0 ? '\n\nBetter than:' + betterThan.map(bt => {
+                    hltvPlayerNickname = top10HltvPlayers.find(t => t.steam64Id === bt).nickname;
+                    const stat = skillCalculations.result.getStatByKeyAndEnemySteamId64(statistic.key, bt);
+                    return '\n' + hltvPlayerNickname + ' ' + stat.topNHltvPlayerValue + stat.unit + ' vs ' + stat.playerValue + stat.unit + 
+                    (bt.samplesLimit ? ' (samples: ' + bt.samplesLimit + ')' : '');
+                }) : '')
+                + (worseThan.length > 0 ? '\n\nWorse than:' + worseThan.map(bt => {
                     hltvPlayerNickname = top10HltvPlayers.find(t => t.steam64Id === bt).nickname;
                     const stat = skillCalculations.result.getStatByKeyAndEnemySteamId64(statistic.key, bt);
                     return '\n' + hltvPlayerNickname + ' ' + stat.topNHltvPlayerValue + stat.unit + ' vs ' + stat.playerValue + stat.unit + 
@@ -396,7 +403,7 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
                 }) : '')
                 ;
                 if(!statistic.includeInCheaterPercentage) {
-                    innerDiv.title += '\nThis statistic is not included in cheater percentage calculations';
+                    innerDiv.title += '\n\nThis statistic is not included in cheater percentage calculations';
                 }
                 innerAPb.appendChild(innerPb);
                 innerDiv.appendChild(innerAPb);
