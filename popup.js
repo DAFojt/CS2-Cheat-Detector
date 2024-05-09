@@ -49,7 +49,9 @@ class Settings {
     defaultSettings = {
         showAllSprays: false,
         cheaterPercentageAtTheTop: false,
-        fancyAnimations: true
+        fancyAnimations: true,
+        minMatchesCount: 10,
+        maxMatchesCount: 60
     }
 
     constructor() {

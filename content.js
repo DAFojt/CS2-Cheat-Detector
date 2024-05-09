@@ -4,11 +4,6 @@ var playerData;
 var playerDetailsPromise;
 
 var dataSource = 'all';
-const maxMatchesCount = 60;
-const minMatchesCount = 10;
-
-var showAllSprays = false; //to do move to global settings
-
 
 async function run() {
     playerData = playerData ?? await getPlayerData(window.location.toString());
@@ -451,7 +446,7 @@ async function createCheaterDiv(player, skillCalculationsPromise) {
         const cheaterInfoTextElement = document.createElement((cheaterPercentage < 50 || isHltvPlayer) ? 'h2' : 'h1');
         cheaterInfoTextElement.className = 'cheat-percentage-value';
 
-        if(matchesCount > minMatchesCount) {
+        if(matchesCount > extensionSettings.minMatchesCount) {
             let cheaterDiv = document.createElement('div');
             if (isHltvPlayer) {
                 cheaterInfoTextElement.textContent = 'HLTV PRO';
@@ -518,15 +513,15 @@ async function createButtonsDiv(player, skillCalculationsPromise) {
     const buttonsRow = document.createElement('div');
     buttonsRow.className = 'cheat-detector-buttons'
 
-    const allButton = createSwitchButton('All', player.games.length);
+    const allButton = await createSwitchButton('All', player.games.length);
     buttonsRow.appendChild(allButton);
-    const premierButton = createSwitchButton('Premier', player.games.filter(g => g.dataSource === 'matchmaking').length);
+    const premierButton = await createSwitchButton('Premier', player.games.filter(g => g.dataSource === 'matchmaking').length);
     buttonsRow.appendChild(premierButton);
-    const faceitButton = createSwitchButton('Faceit', player.games.filter(g => g.dataSource === 'faceit').length);
+    const faceitButton = await createSwitchButton('Faceit', player.games.filter(g => g.dataSource === 'faceit').length);
     buttonsRow.appendChild(faceitButton);
-    const wingmanButton = createSwitchButton('Wingman', player.games.filter(g => g.dataSource === 'matchmaking_wingman').length);
+    const wingmanButton = await createSwitchButton('Wingman', player.games.filter(g => g.dataSource === 'matchmaking_wingman').length);
     buttonsRow.appendChild(wingmanButton);
-    const premierWgmButton = createSwitchButton('Premier+Wgm', player.games.filter(g => g.dataSource === 'matchmaking').length + player.games.filter(g => g.dataSource === 'matchmaking_wingman').length);
+    const premierWgmButton = await createSwitchButton('Premier+Wgm', player.games.filter(g => g.dataSource === 'matchmaking').length + player.games.filter(g => g.dataSource === 'matchmaking_wingman').length);
     buttonsRow.appendChild(premierWgmButton);
     buttonsDiv.appendChild(buttonsRow);
 
@@ -534,7 +529,7 @@ async function createButtonsDiv(player, skillCalculationsPromise) {
     buttonsRow1.className = 'cheat-detector-buttons'
     buttonsRow1.style.marginTop = '3px';
 
-    const buttonComment = createCommentButton(player, skillCalculationsPromise);
+    const buttonComment = await createCommentButton(player, skillCalculationsPromise);
     buttonsRow1.appendChild(buttonComment);
     const reportButton = createReportButton(player, skillCalculationsPromise);
     buttonsRow1.appendChild(reportButton);
@@ -609,7 +604,8 @@ function isHltvProPlayer(player) {
     return !!player.games.some(g => g.dataSource === 'hltv');
 }
 
-function createCommentButton(player, skillCalculationsPromise) {
+async function createCommentButton(player, skillCalculationsPromise) {
+    const extensionSettings = await (new Settings().extensionSettings);
     const commentButton = document.createElement('button');
     commentButton.innerText = 'Add comment';
     commentButton.className = 'btn_green_white_innerfade btn_large';
@@ -617,7 +613,7 @@ function createCommentButton(player, skillCalculationsPromise) {
     const steamCommentButton = document.getElementById('commentthread_Profile_'+player.player.steam64Id+'_submit');
 
     skillCalculationsPromise.then(async scp => {
-        if(!steamCommentArea || !steamCommentButton || isUserProfile() || !isLoggedIn() || scp.cheaterPercentage < 70 || scp.matchesCount < minMatchesCount) {
+        if(!steamCommentArea || !steamCommentButton || isUserProfile() || !isLoggedIn() || scp.cheaterPercentage < 70 || scp.matchesCount < extensionSettings.minMatchesCount) {
             commentButton.disabled = true;
             return commentButton;
         }
@@ -692,12 +688,13 @@ function createLeetifyButton(player) {
     return leetifyAnchor;
 }
 
-function createSwitchButton(requestedDataSource, matchesCount) {
+async function createSwitchButton(requestedDataSource, matchesCount) {
+    const extensionSettings = await (new Settings().extensionSettings);
     const sourceButton = document.createElement('button');
     sourceButton.innerText = requestedDataSource;
     sourceButton.classList.add('btn_green_white_innerfade');
     sourceButton.classList.add('btn_large');
-    if(matchesCount < minMatchesCount){ 
+    if(matchesCount < extensionSettings.minMatchesCount){ 
         sourceButton.classList.add('superfluousButton');
     }
     sourceButton.onclick = () => {
@@ -719,7 +716,9 @@ class Settings {
     defaultSettings = {
         showAllSprays: false,
         cheaterPercentageAtTheTop: false,
-        fancyAnimations: true
+        fancyAnimations: true,
+        minMatchesCount: 10,
+        maxMatchesCount: 60
     }
 
     constructor() {
@@ -849,7 +848,7 @@ async function betterThan(player, topNHltvPlayersPromise) {
         const sprayAccuracy = toValue(matches.map(g => g.playerStats[0].sprayAccuracy), topNHltvPlayer.games.map(g => g.playerStats[0].sprayAccuracy), true);
         matchesCount = matches.length;
 
-        if(dataSource === 'all' || matchesCount === maxMatchesCount || matchesCount === allMatchesCount) {
+        if(dataSource === 'all' || matchesCount === extensionSettings.maxMatchesCount || matchesCount === extensionSettings.allMatchesCount) {
             playerComparison.stats.push({
                 key: "spray_control_overall",
                 name: "Spray control overall",
