@@ -9,6 +9,7 @@ const minMatchesCount = 10;
 
 var showAllSprays = false; //to do move to global settings
 
+
 async function run() {
     playerData = playerData ?? await getPlayerData(window.location.toString());
     if (!playerData || playerData.player.length === 0) {
@@ -28,8 +29,17 @@ async function run() {
 }
 
 async function createInterface(playerData, skillCalculationsPromise, playerDetailsPromise) {
+    const extensionSettings = await (new Settings().extensionSettings);
+    console.log('sss', extensionSettings.cheaterPercentageAtTheTop);
+
     let mainDiv = document.createElement('div');
     mainDiv.className = 'cheat-detector-main';
+    let cheaterDiv;
+
+    if(extensionSettings.cheaterPercentageAtTheTop) {
+        cheaterDiv = document.createElement('div');
+        mainDiv.appendChild(cheaterDiv);
+    }
 
     let infoDiv = document.createElement('div');
     mainDiv.appendChild(infoDiv);
@@ -43,8 +53,10 @@ async function createInterface(playerData, skillCalculationsPromise, playerDetai
     let suspiciousPointsDiv = document.createElement('div');
     mainDiv.appendChild(suspiciousPointsDiv);
 
-    let cheaterDiv = document.createElement('div');
-    mainDiv.appendChild(cheaterDiv);
+    if(!extensionSettings.cheaterPercentageAtTheTop) {
+        cheaterDiv = document.createElement('div');
+        mainDiv.appendChild(cheaterDiv);
+    }
 
     let buttonsDiv = document.createElement('div');
     mainDiv.appendChild(buttonsDiv);
@@ -86,8 +98,8 @@ async function createInterface(playerData, skillCalculationsPromise, playerDetai
 }
 
 async function calculate(player, topNHltvPlayers) {
-    return topNHltvPlayers.then(c => {
-        const result = betterThan(player, c);
+    return topNHltvPlayers.then(async c => {
+        const result = await betterThan(player, c);
 
         let spSum = 0;
         let all = 0;
@@ -343,6 +355,7 @@ async function createPlatformBansTab(detailsPromise) {
 
 async function createSuspiciousTab(player, skillCalculationsPromise) {
     return skillCalculationsPromise.then(async skillCalculations => {
+        const extensionSettings = await (new Settings().extensionSettings);
         const matchesCount = skillCalculations.matchesCount;
         const result = skillCalculations.result;
         const { tab, tabContent } = await createTabWithContent('Suspicious points');
@@ -365,22 +378,32 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
                 innerPb.className = 'progress_bar';
                 innerPb.style.width = '0%';
 
-                for(let i = 0; i <= percent; i++) {
-                    setTimeout(function(){
-                        innerPb.style.width = i + '%';
+                const setProgressBar = (percentage, includeInCheaterPercentage) => {
+                    innerPb.style.width = percentage + '%';
 
-                        if(statistic.includeInCheaterPercentage) {
-                            if(i < 40)
+                        if(includeInCheaterPercentage) {
+                            if(percentage < 40)
                                 innerPb.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgb(0 200 0) 80%)';
-                            else if(i >= 40 && i < 70)
+                            else if(percentage >= 40 && percentage < 70)
                                 innerPb.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgb(200 200 0) 80%)';
-                            else if(i >= 70)
+                            else if(percentage >= 70)
                                 innerPb.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgb(200 0 0) 80%)';
                         } else {
                             innerPb.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgb(0 0 120) 80%)';
                         }
-                    }, i * 25);
                 }
+
+                if(extensionSettings.fancyAnimations) {
+                    for(let i = 0; i <= percent; i++) {
+                        setTimeout(function(){
+                            setProgressBar(i, statistic.includeInCheaterPercentage);
+                        }, i * 25);
+                    }
+                }
+                else {
+                    setProgressBar(percent, statistic.includeInCheaterPercentage);
+                }
+                
                 
                 
                 const innerAPb = document.createElement('div');
@@ -422,6 +445,7 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
 }
 
 async function createCheaterDiv(player, skillCalculationsPromise) {
+    const extensionSettings = await (new Settings().extensionSettings);
     return skillCalculationsPromise.then(v => {
         const matchesCount = v.matchesCount;
         const cheaterPercentage = v.cheaterPercentage;
@@ -435,34 +459,45 @@ async function createCheaterDiv(player, skillCalculationsPromise) {
                 cheaterInfoTextElement.textContent = 'HLTV PRO';
             }
             else {
-                for(let i = 0; i <= cheaterPercentage; i++){
-                    setTimeout(function(){
-                        cheaterInfoTextElement.textContent = 'Cheater ' + i + '%';
+                const setCheaterPercentage = (percentage) => {
+                    cheaterInfoTextElement.textContent = 'Cheater ' + percentage + '%';
                         cheaterDiv.className = 'cheat-detector cheat-percentage-div'
-                        if (i < 50) {
+                        if (percentage < 50) {
                             cheaterInfoTextElement.classList.add('cheat-percentage-low');
                         }
-                        else if(i >= 50 && i < 80) {
+                        else if(percentage >= 50 && percentage < 80) {
                             cheaterInfoTextElement.classList.add('cheat-percentage-mid');
                         }
-                        else if(i >= 80) {
+                        else if(percentage >= 80) {
                             cheaterInfoTextElement.classList.add('cheat-percentage-high');
                         }
 
-                        if(i === 100) {
-                            for(let j = 0; j <= 26; j++) {
-                                setTimeout(function(){
-                                    if (j%2 === 0) {
-                                        cheaterInfoTextElement.className = 'cheat-percentage-value cheat-percentage-high';
-                                    }
-                                    else {
-                                        cheaterInfoTextElement.className = 'cheat-percentage-value cheat-percentage-critical';
-                                    }
-                                }, 500 * j);
+                        if(extensionSettings.fancyAnimations) {
+                            if(percentage === 100) {
+                                for(let j = 0; j <= 26; j++) {
+                                    setTimeout(function(){
+                                        if (j%2 === 0) {
+                                            cheaterInfoTextElement.className = 'cheat-percentage-value cheat-percentage-high';
+                                        }
+                                        else {
+                                            cheaterInfoTextElement.className = 'cheat-percentage-value cheat-percentage-critical';
+                                        }
+                                    }, 500 * j);
+                                }
                             }
-                        }
-                    }, i * 25);
+                        }   
                 }
+                if(extensionSettings.fancyAnimations) {
+                    for(let i = 0; i <= cheaterPercentage; i++){
+                        setTimeout(function(){
+                            setCheaterPercentage(i);
+                        }, i * 25);
+                    }
+                }
+                else {
+                    setCheaterPercentage(cheaterPercentage);
+                }
+                
             }
             cheaterDiv.appendChild(cheaterInfoTextElement);
             cheaterDiv.title = 'Algorithm:\nTake the top half of the statistics\nCalculate the average score\nPass through a sigmoid filter'
@@ -682,6 +717,18 @@ async function getPlayerDetailsData(id) {
     return fetch(`https://api.leetify.com/api/profile/${id}`).then(res => res.json()).catch(err => { console.error(err); throw err; }).finally(() => console.info('Player details API called'));
 }
 
+class Settings {
+    defaultSettings = {
+        showAllSprays: false,
+        cheaterPercentageAtTheTop: false,
+        fancyAnimations: true
+    }
+
+    constructor() {
+        this.extensionSettings = getCache('extensionSettings').then(s => {console.log('ds', s ? s : this.defaultSettings); return s ? s : this.defaultSettings} );
+    }
+}
+
 function setCache(key, data) {
     let obj = {};
     obj[key] = JSON.stringify(data);
@@ -717,7 +764,9 @@ function getCordErrorValue(coord) {
     return Math.sqrt(Math.pow(coord.weaponX - coord.playerX, 2) + Math.pow(coord.weaponY - coord.playerY, 2));
 }
 
-function betterThan(player, topNHltvPlayersPromise) {
+async function betterThan(player, topNHltvPlayersPromise) {
+    const extensionSettings = await (new Settings().extensionSettings);
+
     let playerComparisons = {
         comparisons: [],
         info: {}
@@ -783,6 +832,7 @@ function betterThan(player, topNHltvPlayersPromise) {
                 key: "spray_control_overall",
                 name: "Spray control overall",
                 unit: "*",
+                order: 0,
                 suspiciousBehaviour: "Norecoil",
                 playerValue: sprayControlOverall[0],
                 topNHltvPlayerValue: sprayControlOverall[1],
@@ -796,6 +846,7 @@ function betterThan(player, topNHltvPlayersPromise) {
                 key: "spray_control_ak",
                 name: "Spray control AK-47",
                 unit: "*",
+                order: 1,
                 suspiciousBehaviour: "Norecoil",
                 playerValue: sprayControlAK[0],
                 topNHltvPlayerValue: sprayControlAK[1],
@@ -806,12 +857,15 @@ function betterThan(player, topNHltvPlayersPromise) {
                 samplesLimit: sprayControlAK[2]
             });
 
-            if(showAllSprays) {
+            playerComparisonAdditionalStats = [];
+            if(extensionSettings.showAllSprays) {
+                let internalOrder = 0;
                 sprayComparisons.filter(x => x.weaponLabel != "AK-47").forEach(spray => {
                     playerComparison.stats.push({
                         key: "spray_control_" + spray.weaponLabel,
                         name: "Spray control " + spray.weaponLabel,
                         unit: "*",
+                        order: 2 + ([...spray.weaponLabel].map(char => char.charCodeAt(0)).reduce((accumulator, currentValue) => accumulator + currentValue, 0) / 10000),
                         suspiciousBehaviour: "Norecoil",
                         playerValue: spray.playerError,
                         topNHltvPlayerValue: spray.topNHltvPlayerError,
@@ -821,6 +875,7 @@ function betterThan(player, topNHltvPlayersPromise) {
                         includeInCheaterPercentage: false,
                         samplesLimit: spray.coordsLimit
                     });
+                    internalOrder++;
                 })
             }
         }
@@ -829,6 +884,7 @@ function betterThan(player, topNHltvPlayersPromise) {
             key: "spray_accuracy",
             name: "Spray accuracy",
             unit: "*",
+            order: 3,
             suspiciousBehaviour: "Aimbot",
             playerValue: sprayAccuracy[0],
             topNHltvPlayerValue: sprayAccuracy[1],
@@ -842,6 +898,7 @@ function betterThan(player, topNHltvPlayersPromise) {
             key: "preaim",
             name: "Preaim",
             unit: "*",
+            order: 4,
             suspiciousBehaviour: "Wallhack",
             playerValue: preaaim[0],
             topNHltvPlayerValue: preaaim[1],
@@ -855,6 +912,7 @@ function betterThan(player, topNHltvPlayersPromise) {
             key: "tdm",
             name: "Reaction time(TDM)",
             unit: "ms",
+            order: 5,
             suspiciousBehaviour: "Aimbot",
             playerValue: reactionTimes[0],
             topNHltvPlayerValue: reactionTimes[1],
@@ -869,6 +927,7 @@ function betterThan(player, topNHltvPlayersPromise) {
             name: "Accuracy enemy spotted",
             suspiciousBehaviour: "Aimbot",
             unit: "%",
+            order: 6,
             playerValue: accuracyEnemySpotted[0],
             topNHltvPlayerValue: accuracyEnemySpotted[1],
             hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
@@ -881,6 +940,7 @@ function betterThan(player, topNHltvPlayersPromise) {
             key: "accuracy_head",
             name: "Accuracy head",
             unit: "%",
+            order: 7,
             suspiciousBehaviour: "Aimbot",
             playerValue: accuracyHead[0],
             topNHltvPlayerValue: accuracyHead[1],
@@ -894,6 +954,7 @@ function betterThan(player, topNHltvPlayersPromise) {
             key: "accuracy",
             name: "Accuracy overall",
             unit: "%",
+            order: 8,
             suspiciousBehaviour: "Aimbot",
             playerValue: accuracy[0],
             topNHltvPlayerValue: accuracy[1],
@@ -902,11 +963,10 @@ function betterThan(player, topNHltvPlayersPromise) {
             isPlayerBetter: () => accuracy[0] > accuracy[1],
             includeInCheaterPercentage: false
         });
-        playerComparisons.comparisons.push(playerComparison);
+    playerComparisons.comparisons.push(playerComparison);
     });
-    playerComparisons.info = {};
     playerComparisons.matchesCount = matchesCount;
-    playerComparisons.avaiableStats = playerComparisons.comparisons.flatMap(r => r.stats).map(s => ({ key: s.key, name: s.name, includeInCheaterPercentage: s.includeInCheaterPercentage, suspiciousBehaviour: s.suspiciousBehaviour, unit: s.unit })).filter((obj, index, arr) =>{return arr.findIndex(o =>{return JSON.stringify(o) === JSON.stringify(obj)}) === index});
+    playerComparisons.avaiableStats = playerComparisons.comparisons.flatMap(r => r.stats).map(s => ({ key: s.key, name: s.name, includeInCheaterPercentage: s.includeInCheaterPercentage, suspiciousBehaviour: s.suspiciousBehaviour, unit: s.unit, order: s.order })).filter((obj, index, arr) =>{return arr.findIndex(o =>{return JSON.stringify(o) === JSON.stringify(obj)}) === index}).sort(function(a, b) {return a.order - b.order;});
     playerComparisons.getStatNameByKey = (key) => playerComparisons.avaiableStats.find(s => s.key === key).name
     playerComparisons.getStatSuspiciousBehaviourByKey = (key) => playerComparisons.avaiableStats.find(s => s.key === key).suspiciousBehaviour
     playerComparisons.getAllStats = () => playerComparisons.comparisons.flatMap(c => c.stats).reduce((stats, st) => {const key = st.key;if (!stats[key]) {stats[key] = []} stats[key].push(st); return stats;}, {});;
