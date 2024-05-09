@@ -30,7 +30,6 @@ async function run() {
 
 async function createInterface(playerData, skillCalculationsPromise, playerDetailsPromise) {
     const extensionSettings = await (new Settings().extensionSettings);
-    console.log('sss', extensionSettings.cheaterPercentageAtTheTop);
 
     let mainDiv = document.createElement('div');
     mainDiv.className = 'cheat-detector-main';
@@ -100,7 +99,6 @@ async function createInterface(playerData, skillCalculationsPromise, playerDetai
 async function calculate(player, topNHltvPlayers) {
     return topNHltvPlayers.then(async c => {
         const result = await betterThan(player, c);
-
         let spSum = 0;
         let all = 0;
         let newSp = result.getAllSuspiciousPoints();
@@ -364,7 +362,7 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
             return;
         }
         else if(matchesCount > 10) {
-            result.avaiableStats.forEach(statistic => {
+            result.avaiableStats().forEach(statistic => {
                 const suspiciousPoints = skillCalculations.result.getSuspiciousPointsByKey(statistic.key);
                 const innerDiv =  document.createElement('div');
                 const innerP = document.createElement('p');
@@ -629,7 +627,7 @@ function createCommentButton(player, skillCalculationsPromise) {
         suspiciousPoints.sort(function(a, b){return b.points - a.points}).forEach(x => {
             comment.push(x.name + ' ' + x.points + ' / ' + x.all + ' (' + x.suspiciousBehaviour + ')');
         })
-        const betterThan = '\nBetter than:' + [... new Set(scp.result.avaiableStats.flatMap(av => scp.result.getEnemysSteamId64FromStatByKeyWherePlayerIsBetter(av.key)))].map(x => {
+        const betterThan = '\nBetter than:' + [... new Set(scp.result.avaiableStats().flatMap(av => scp.result.getEnemysSteamId64FromStatByKeyWherePlayerIsBetter(av.key)))].map(x => {
             return ' ' + top10HltvPlayers.find(t => t.steam64Id === x).nickname;
         });
         commentButton.onclick = () => {
@@ -725,7 +723,7 @@ class Settings {
     }
 
     constructor() {
-        this.extensionSettings = getCache('extensionSettings').then(s => {console.log('ds', s ? s : this.defaultSettings); return s ? s : this.defaultSettings} );
+        this.extensionSettings = getCache('extensionSettings').then(s => s ? s : this.defaultSettings );
     }
 }
 
@@ -766,12 +764,36 @@ function getCordErrorValue(coord) {
 
 async function betterThan(player, topNHltvPlayersPromise) {
     const extensionSettings = await (new Settings().extensionSettings);
+    let matches = player?.games.filter(x => x.isCs2);
 
     let playerComparisons = {
         comparisons: [],
-        info: {}
+        info: {},
+        _avaiableStats: [],
+        avaiableStats: () => {
+            if(playerComparisons._avaiableStats.length === 0) {
+                playerComparisons._avaiableStats = playerComparisons.comparisons.flatMap(r => r.stats).map(s => ({ key: s.key, name: s.name, includeInCheaterPercentage: s.includeInCheaterPercentage, suspiciousBehaviour: s.suspiciousBehaviour, unit: s.unit, order: s.order })).filter((obj, index, arr) =>{return arr.findIndex(o =>{return JSON.stringify(o) === JSON.stringify(obj)}) === index}).sort(function(a, b) {return a.order - b.order;})
+            }
+            return playerComparisons._avaiableStats;
+        },
+        getStatNameByKey: (key) => playerComparisons.avaiableStats().find(s => s.key === key).name,
+        getStatSuspiciousBehaviourByKey: (key) => playerComparisons.avaiableStats().find(s => s.key === key).suspiciousBehaviour,
+        getAllStats: () => playerComparisons.comparisons.flatMap(c => c.stats).reduce((stats, st) => {const key = st.key;if (!stats[key]) {stats[key] = []} stats[key].push(st); return stats;}, {}),
+        getStatsByKey: (key) => playerComparisons.comparisons.flatMap(c => c.stats).filter(s => s.key === key),
+        getStatsByKeyLength: (key) => playerComparisons.comparisons.flatMap(c => c.stats).filter(s => s.key === key).length,
+        getStatByKeyAndEnemySteamId64: (key, hltvPlayerSteam64Id) => playerComparisons.comparisons.flatMap(c => c.stats).find(s => s.key === key && s.hltvPlayerSteam64Id === hltvPlayerSteam64Id),
+        getStatsByKeyWherePlayerIsBetter: (key) => playerComparisons.getStatsByKey(key).filter(s => s.isPlayerBetter()),
+        getStatsByKeyWherePlayerIsBetterLength: (key) => playerComparisons.getStatsByKey(key).filter(s => s.isPlayerBetter()).length,
+        getStatsByKeyWherePlayerIsWorse: (key) => playerComparisons.getStatsByKey(key).filter(s => !s.isPlayerBetter()),
+        getStatsByKeyWherePlayerIsWorseLength: (key) => playerComparisons.getStatsByKey(key).filter(s => !s.isPlayerBetter()).length,
+        getEnemysSteamId64FromStatByKeyWherePlayerIsBetter: (key) => playerComparisons.getStatsByKey(key).filter(s => s.isPlayerBetter()).map(s => s.hltvPlayerSteam64Id),
+        getEnemysSteamId64FromStatByKeyWherePlayerIsWorse: (key) => playerComparisons.getStatsByKey(key).filter(s => !s.isPlayerBetter()).map(s => s.hltvPlayerSteam64Id),
+        getAllSuspiciousPoints: () => playerComparisons.avaiableStats().filter(av => av.includeInCheaterPercentage).map(av => playerComparisons.getSuspiciousPointsByKey(av.key)),
+        getSuspiciousPointsByKey: (key) => { return {points: playerComparisons.getStatsByKeyWherePlayerIsBetterLength(key), all: playerComparisons.getStatsByKeyLength(key), name: playerComparisons.getStatNameByKey(key), suspiciousBehaviour: playerComparisons.getStatSuspiciousBehaviourByKey(key)} },
+    
     };
-    let matches = player?.games.filter(x => x.isCs2);
+
+
     if(!matches || matches.length === 0) {
         playerComparisons.stats = [];
         playerComparisons.matchesCount = 0;
@@ -966,21 +988,6 @@ async function betterThan(player, topNHltvPlayersPromise) {
     playerComparisons.comparisons.push(playerComparison);
     });
     playerComparisons.matchesCount = matchesCount;
-    playerComparisons.avaiableStats = playerComparisons.comparisons.flatMap(r => r.stats).map(s => ({ key: s.key, name: s.name, includeInCheaterPercentage: s.includeInCheaterPercentage, suspiciousBehaviour: s.suspiciousBehaviour, unit: s.unit, order: s.order })).filter((obj, index, arr) =>{return arr.findIndex(o =>{return JSON.stringify(o) === JSON.stringify(obj)}) === index}).sort(function(a, b) {return a.order - b.order;});
-    playerComparisons.getStatNameByKey = (key) => playerComparisons.avaiableStats.find(s => s.key === key).name
-    playerComparisons.getStatSuspiciousBehaviourByKey = (key) => playerComparisons.avaiableStats.find(s => s.key === key).suspiciousBehaviour
-    playerComparisons.getAllStats = () => playerComparisons.comparisons.flatMap(c => c.stats).reduce((stats, st) => {const key = st.key;if (!stats[key]) {stats[key] = []} stats[key].push(st); return stats;}, {});;
-    playerComparisons.getStatsByKey = (key) => playerComparisons.comparisons.flatMap(c => c.stats).filter(s => s.key === key)
-    playerComparisons.getStatsByKeyLength = (key) => playerComparisons.comparisons.flatMap(c => c.stats).filter(s => s.key === key).length
-    playerComparisons.getStatByKeyAndEnemySteamId64 = (key, hltvPlayerSteam64Id) => playerComparisons.comparisons.flatMap(c => c.stats).find(s => s.key === key && s.hltvPlayerSteam64Id === hltvPlayerSteam64Id)
-    playerComparisons.getStatsByKeyWherePlayerIsBetter = (key) => playerComparisons.getStatsByKey(key).filter(s => s.isPlayerBetter())
-    playerComparisons.getStatsByKeyWherePlayerIsBetterLength = (key) => playerComparisons.getStatsByKey(key).filter(s => s.isPlayerBetter()).length
-    playerComparisons.getStatsByKeyWherePlayerIsWorse = (key) => playerComparisons.getStatsByKey(key).filter(s => !s.isPlayerBetter())
-    playerComparisons.getStatsByKeyWherePlayerIsWorseLength = (key) => playerComparisons.getStatsByKey(key).filter(s => !s.isPlayerBetter()).length
-    playerComparisons.getEnemysSteamId64FromStatByKeyWherePlayerIsBetter = (key) => playerComparisons.getStatsByKey(key).filter(s => s.isPlayerBetter()).map(s => s.hltvPlayerSteam64Id)
-    playerComparisons.getEnemysSteamId64FromStatByKeyWherePlayerIsWorse = (key) => playerComparisons.getStatsByKey(key).filter(s => !s.isPlayerBetter()).map(s => s.hltvPlayerSteam64Id)
-    playerComparisons.getAllSuspiciousPoints = () => playerComparisons.avaiableStats.filter(av => av.includeInCheaterPercentage).map(av => playerComparisons.getSuspiciousPointsByKey(av.key))
-    playerComparisons.getSuspiciousPointsByKey = (key) => { return {points: playerComparisons.getStatsByKeyWherePlayerIsBetterLength(key), all: playerComparisons.getStatsByKeyLength(key), name: playerComparisons.getStatNameByKey(key), suspiciousBehaviour: playerComparisons.getStatSuspiciousBehaviourByKey(key)} };
 
     return playerComparisons;
 }
