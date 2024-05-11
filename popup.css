@@ -1,5 +1,18 @@
 body {
     margin: 0px;
+    background: #171d25;
+    color: aliceblue;
+}
+
+textarea {
+    width: 100%;
+    height: 100px;
+    resize:vertical;
+}
+
+button {
+    color: gainsboro;
+    background: #002155;
 }
 
 .main-img {

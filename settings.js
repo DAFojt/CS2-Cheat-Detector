@@ -6,10 +6,11 @@ try {
 class Settings {
     defaultSettings = {
         showAllSpraysEnabled: false,
-        cheaterPercentageAtTheTopEnabled: false,
+        cheaterPercentageAtTheTopEnabled: true,
         fancyAnimationsEnabled: true,
         minMatchesCount: 10,
-        maxMatchesCount: 60
+        maxMatchesCount: 60,
+        accuracyOverallEnabled: true
     }
 
     constructor() {
@@ -24,6 +25,10 @@ class Settings {
         this.extensionSettings.then(st => {
             setCache('extensionSettings', st);
         })
+    }
+
+    resetSettings() {
+        setCache('extensionSettings', this.defaultSettings);
     }
 }
 

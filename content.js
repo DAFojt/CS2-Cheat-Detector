@@ -141,13 +141,16 @@ async function getTopNHltvPlayersData() {
 
     const topNHltvPlayersDataFromCachePromise = getCache('topNHltvPlayersData');
     const lastCalculationsDateFromCachePromise = getCache('lastCalculationsDate');
+    const recalculateDataPromise = getCache('recalculateData');
     let dateMinusDay = new Date();
     dateMinusDay.setDate(dateMinusDay.getDate() - 1);
 
-    return await Promise.all([topNHltvPlayersDataFromCachePromise, lastCalculationsDateFromCachePromise]).then(async cacheData => {
-        if (!cacheData[0] || !cacheData[1] || new Date(cacheData[1]) < dateMinusDay) {
+    return await Promise.all([topNHltvPlayersDataFromCachePromise, lastCalculationsDateFromCachePromise, recalculateDataPromise]).then(async cacheData => {
+        if (!cacheData[0] || !cacheData[1] || new Date(cacheData[1]) < dateMinusDay || cacheData[2] === true) {
+            console.log(cacheData[2]);
             const topNHltvPlayers = extensionSettings.top10hltvPlayers.map(x => x.steam64Id);
             const topNHltvPlayersDataFromApi = getPlayersDataFromApi(topNHltvPlayers);
+            setCache('recalculateData', false);
             return await Promise.all(topNHltvPlayersDataFromApi).then(apiData => {
                 setCache('topNHltvPlayersData', apiData);
                 setCache('lastCalculationsDate', new Date());
@@ -361,7 +364,6 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
         const result = skillCalculations.result;
         const { tab, tabContent } = await createTabWithContent('Suspicious points');
         const top10HltvPlayers = extensionSettings.top10hltvPlayers;
-        console.log(extensionSettings);
         if (isHltvProPlayer(player)) {
             return;
         }
@@ -944,19 +946,21 @@ async function betterThan(player, topNHltvPlayersPromise) {
             includeInCheaterPercentage: true
         });
         
-        playerComparison.stats.push({
-            key: "accuracy",
-            name: "Accuracy overall",
-            unit: "%",
-            order: 8,
-            suspiciousBehaviour: "Aimbot",
-            playerValue: accuracy[0],
-            topNHltvPlayerValue: accuracy[1],
-            hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
-            checkingMethod: "biggerBetter",
-            isPlayerBetter: () => accuracy[0] > accuracy[1],
-            includeInCheaterPercentage: false
-        });
+        if(extensionSettings.accuracyOverallEnabled) {
+            playerComparison.stats.push({
+                key: "accuracy",
+                name: "Accuracy overall",
+                unit: "%",
+                order: 8,
+                suspiciousBehaviour: "Aimbot",
+                playerValue: accuracy[0],
+                topNHltvPlayerValue: accuracy[1],
+                hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
+                checkingMethod: "biggerBetter",
+                isPlayerBetter: () => accuracy[0] > accuracy[1],
+                includeInCheaterPercentage: false
+            });
+        }
     playerComparisons.comparisons.push(playerComparison);
     });
     playerComparisons.matchesCount = matchesCount;
