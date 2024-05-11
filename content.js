@@ -509,7 +509,7 @@ async function createCheaterDiv(player, skillCalculationsPromise) {
                 else {
                     setCheaterPercentage(cheaterPercentage);
                 }
-                
+                catchCheater(player.player.steam64Id, cheaterPercentage);
             }
             cheaterDiv.appendChild(cheaterInfoTextElement);
             cheaterDiv.title = 'Algorithm:\nTake the top half of the statistics\nCalculate the average score\nPass through a sigmoid filter'
@@ -621,6 +621,10 @@ function isLoggedIn() {
 
 function isHltvProPlayer(player) {
     return !!player.games.some(g => g.dataSource === 'hltv');
+}
+
+function isBanned() {
+    return document.getElementsByClassName('profile_ban_status').length > 0;
 }
 
 async function createCommentButton(player, skillCalculationsPromise) {
@@ -825,7 +829,8 @@ async function betterThan(player, topNHltvPlayersPromise) {
             });
         });
 
-        const sprayControlOverall = toValue(sprayComparisons.map(sc => sc.playerError), sprayComparisons.map(sc => sc.topNHltvPlayerError), false);
+        const weaponsList = ['AK-47', 'M4A4', 'M4A1-S', 'M4A4', 'FAMAS', 'Galil AR'];
+        const sprayControlOverall = toValue(sprayComparisons.filter(sc => weaponsList.includes(sc.weaponLabel)).map(sc => sc.playerError), sprayComparisons.filter(sc => weaponsList.includes(sc.weaponLabel)).map(sc => sc.topNHltvPlayerError), false);
         const sprayControlAK = [sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').playerError, sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').topNHltvPlayerError, sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').coordsLimit];
 
 
@@ -1003,9 +1008,35 @@ function toValue(playerValueData, hltvPlayerValueData, percent = false) {
     return [playerValue, hltvPlayerValue];
 }
 
+async function catchCheater(steam64Id, cheaterPercentage) {
+    if(cheaterPercentage >= 80 && !isBanned()) {
+        getCache('caughtCheaters').then(cc => {
+            if(!cc) {
+                cc = [];
+            }
+            let cheater = cc.find(c => c.steam64Id === steam64Id);
+            let rewrite = false;
+            if(!!cheater && cheater.cheaterPercentage < cheaterPercentage) {
+                const index = cc.indexOf(cheater);
+                cc.splice(index, 1);
+                rewrite = true;
+            }
+            if(!cheater || rewrite) {
+                cc.push({
+                    steam64Id,
+                    cheaterPercentage
+                });
+                setCache('caughtCheaters', cc);
+            }
+        });
+    }
+}
+
 async function nicePokemon() {
-    getCache('happyGabenAchivementCompleted').then(isGabenHappy => {
-        if(!isGabenHappy) {
+    if(!isBanned()) {
+        let isGabenHappy = await getCache('happyGabenAchivementCompleted');
+        let showHappyGabenForEachNewObvCheaterEnabled = await getCache('showHappyGabenForEachNewObvCheaterEnabled');
+        if(!isGabenHappy || showHappyGabenForEachNewObvCheaterEnabled) {
             const happyGaben = document.createElement('img');
             happyGaben.className = 'happy-gaben show-from-bottom';
             happyGaben.src = chrome.runtime.getURL('images/eggs/gaben.png');
@@ -1016,6 +1047,5 @@ async function nicePokemon() {
             }, 8000);
             setCache('happyGabenAchivementCompleted', true);
         }
-    })
-    
+    }
 }

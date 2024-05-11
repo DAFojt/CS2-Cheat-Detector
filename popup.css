@@ -15,6 +15,11 @@ button {
     background: #002155;
 }
 
+table, th, td {
+    border: 1px #00514e solid;
+    border-radius: 2px;
+}
+
 .main-img {
     object-fit: fill;
 }

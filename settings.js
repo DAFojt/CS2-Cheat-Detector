@@ -10,12 +10,13 @@ class Settings {
         fancyAnimationsEnabled: true,
         minMatchesCount: 10,
         maxMatchesCount: 60,
-        accuracyOverallEnabled: true
+        accuracyOverallEnabled: false,
+        showHappyGabenForEachNewObvCheaterEnabled: false,
     }
 
     constructor() {
         this.extensionSettings = getCache('extensionSettings').then(s => s ? s : this.defaultSettings).then(async s => {
-            if(!s.top10hltvPlayers)
+            if (!s.top10hltvPlayers)
                 s.top10hltvPlayers = await getTop10HltvPlayers();
             return s;
         });
@@ -29,6 +30,8 @@ class Settings {
 
     resetSettings() {
         setCache('extensionSettings', this.defaultSettings);
+        setCache('recalculateData', true);
+        console.info('All settings reseted');
     }
 }
 

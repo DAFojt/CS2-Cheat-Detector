@@ -6,16 +6,20 @@
 </head>
 <body>
     <img class="main-img" src="images/main-img.png">
-    <input type="checkbox" id="showAllSpraysCheckbox" name="showAllSpraysCheckbox" value="showAllSpraysCheckbox">
-    <label for="showAllSpraysCheckbox">Enable additional sprays</label><br>
-    <input type="checkbox" id="cheaterPercentageAtTheTopCheckbox" name="cheaterPercentageAtTheTopCheckbox" value="cheaterPercentageAtTheTopCheckbox">
-    <label for="cheaterPercentageAtTheTopCheckbox">Cheater percentage at the top</label><br>
     <input type="checkbox" id="fancyAnimationsCheckbox" name="fancyAnimationsCheckbox" value="fancyAnimationsCheckbox">
     <label for="fancyAnimations">Enable animations</label><br>
+    <input type="checkbox" id="cheaterPercentageAtTheTopCheckbox" name="cheaterPercentageAtTheTopCheckbox" value="cheaterPercentageAtTheTopCheckbox">
+    <label for="cheaterPercentageAtTheTopCheckbox">Cheater percentage at the top</label><br>
+    <input type="checkbox" id="showAllSpraysCheckbox" name="showAllSpraysCheckbox" value="showAllSpraysCheckbox">
+    <label for="showAllSpraysCheckbox">Enable additional sprays</label><br>
     <input type="checkbox" id="accuracyOverallCheckbox" name="accuracyOverallCheckbox" value="accuracyOverallCheckbox">
     <label for="accuracyOverallCheckbox">Enable accuracy overall statistic</label><br>
     <input type="checkbox" id="instantCommentCheckbox" name="instantCommentCheckbox" value="instantCommentCheckbox">
     <label for="instantCommentCheckbox">Instant comment</label><br>
+    <div id="hiddenOptions" hidden title="This hidden option is enabled only for players who have caught one or more 100% cheaters">
+        <input type="checkbox" id="happyGabenCheckbox" name="happyGabenCheckbox" value="happyGabenCheckbox">
+        <label for="happyGabenCheckbox">Show happy Gaben for each new obv</label><br>
+    </div>
 
     <!-- <input type="checkbox" id="suspiciousPointsCustomOrderCheckbox" name="suspiciousPointsCustomOrderCheckbox" value="suspiciousPointsCustomOrderCheckbox">
     <label for="suspiciousPointsCustomOrderCheckbox">Custom suspicious points order (experimental)</label><br>
@@ -35,6 +39,20 @@
         <button id="top10hltvCustomSaveButton">Save</button>
         <label id="top10hltvCustomError" hidden></label>
     </div>
+    </br>
+    <label>Achivements</label>
+    </br>
+    <label>Caught cheaters:</label>
+    <table id="statsTable">
+        <tr>
+            <td>80%-99%</td>
+            <td id="cheaters80percent"></td>
+        </tr>
+        <tr>
+            <td>100%</td>
+            <td id="cheaters100percent"></td>
+        </tr>
+    </table>
     </br>
     <button id="resetSettingsButton">Reset settings</button>
 

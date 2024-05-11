@@ -12,6 +12,7 @@ function run() {
     document.getElementById("top10hltvCustomCheckbox").addEventListener("click", top10hltvCustomChanged);
     document.getElementById("accuracyOverallCheckbox").addEventListener("click", accuracyOverallChanged);
     document.getElementById("instantCommentCheckbox").addEventListener("click", instantCommentChanged);
+    document.getElementById("happyGabenCheckbox").addEventListener("click", happyGabenChanged);
 
 
     //document.getElementById("suspiciousPointsCustomOrderSaveButton").addEventListener("click", suspiciousPointsCustomOrderSaveOnClick);
@@ -28,11 +29,29 @@ function run() {
         document.getElementById("top10hltvCustomCheckbox").checked = es.top10hltvCustomEnabled;
         document.getElementById("accuracyOverallCheckbox").checked = es.accuracyOverallEnabled;
         document.getElementById("instantCommentCheckbox").checked = es.instantCommentEnabled;
+        document.getElementById("happyGabenCheckbox").checked = es.showHappyGabenForEachNewObvCheaterEnabled;
 
         //document.getElementById("suspiciousPointsCustomOrderEditable").hidden = !es.suspiciousPointsCustomOrderEnabled;
         document.getElementById("top10hltvCustomEditable").hidden = !es.top10hltvCustomEnabled;
         document.getElementById("top10hltvCustomTextArea").value = JSON.stringify(es.top10hltvPlayers);
     })
+
+    getCache('caughtCheaters').then(cc => {
+        const pc80CheatersTd = document.getElementById("cheaters80percent");
+        const pc100CheatersTd = document.getElementById("cheaters100percent");
+        const statsTable = document.getElementById('statsTable');
+
+        const pc80Cheaters = cc?.filter(c => c.cheaterPercentage >= 80 && c.cheaterPercentage < 100);
+        const pc100Cheaters = cc?.filter(c => c.cheaterPercentage === 100);
+
+        console.log(pc80Cheaters, pc100Cheaters);
+        pc80CheatersTd.textContent = pc80Cheaters?.length ?? 0;
+        pc100CheatersTd.textContent = pc100Cheaters?.length ?? 0;
+
+        statsTable.title = 'Steam ids:\n80%-99%:\n' + (pc80Cheaters?.length > 0 ? pc80Cheaters.map(c => c.steam64Id).join('\n') : '-') + '\n100%:\n' + (pc100Cheaters?.length > 0 ? pc100Cheaters.map(c => c.steam64Id).join('\n') : '-');
+        if((pc100Cheaters?.length ?? 0) > 0)
+            document.getElementById('hiddenOptions').hidden = false;
+    });
 }
 
 function showAllSpraysChanged() {
@@ -100,6 +119,14 @@ function instantCommentChanged() {
     });
 }
 
+function happyGabenChanged() {
+    let v = document.getElementById("happyGabenCheckbox").checked;
+    let settings = new Settings();
+    settings.extensionSettings.then((st) => {
+        st.showHappyGabenForEachNewObvCheaterEnabled = v;
+        settings.saveSettings();
+    });
+}
 function suspiciousPointsCustomOrderSaveOnClick() {
 
 }
@@ -109,12 +136,10 @@ function top10hltvCustomSaveOnClick() {
     try {
         let top10hltvPlayers;
         top10hltvPlayers = JSON.parse(document.getElementById("top10hltvCustomTextArea").value);
-        console.log('tttt', top10hltvPlayers);
         if (top10hltvPlayers.length > 10)
             throw 'Maximum number of top players: 10. Remove excessive records before saving.';
         var reg = /^\d+$/;
         top10hltvPlayers.forEach(element => {
-            console.log(element.steam64Id, reg.test(element.steam64Id.length));
             if (element.steam64Id.length != 17 || !reg.test(element.steam64Id))
                 throw 'Wrong steam ID for ' + element.nickname;
         });
@@ -127,14 +152,13 @@ function top10hltvCustomSaveOnClick() {
             setCache('recalculateData', true);
         });
     } catch (e) {
-        console.log(e);
+        console.error(e);
         error.textContent = e;
         error.hidden = false;
     }
 }
 
 function resetSettingsOnClick() {
-    console.log('reset settings');
     let settings = new Settings();
     settings.resetSettings();
     window.close();
@@ -150,7 +174,8 @@ class Settings {
         fancyAnimationsEnabled: true,
         minMatchesCount: 10,
         maxMatchesCount: 60,
-        accuracyOverallEnabled: true
+        accuracyOverallEnabled: false,
+        showHappyGabenForEachNewObvCheaterEnabled: false,
     }
 
     constructor() {
@@ -170,6 +195,7 @@ class Settings {
     resetSettings() {
         setCache('extensionSettings', this.defaultSettings);
         setCache('recalculateData', true);
+        console.info('All settings reseted');
     }
 }
 
@@ -200,6 +226,6 @@ async function getCache(key) {
 
 function removeCache(key) {
     chrome.storage.local.remove([key])
-        .then(() => console.log("Data " + key + " removed from cache"))
+        .then(() => console.infp("Data " + key + " removed from cache"))
         .catch(e => console.error("Error while trying to remove cache data: " + key + " Error: " + e));
 }
