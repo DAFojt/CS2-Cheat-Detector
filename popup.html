@@ -6,12 +6,27 @@
 </head>
 <body>
     <img class="main-img" src="images/main-img.png">
-    <input type="checkbox" id="showAllSprays" name="showAllSprays" value="showAllSprays">
-    <label for="showAllSprays">Enable additional sprays</label><br>
-    <input type="checkbox" id="cheaterPercentageAtTheTop" name="cheaterPercentageAtTheTop" value="cheaterPercentageAtTheTop">
-    <label for="cheaterPercentageAtTheTop">Cheater percentage at the top</label><br>
-    <input type="checkbox" id="fancyAnimations" name="fancyAnimations" value="fancyAnimations">
+    <input type="checkbox" id="showAllSpraysCheckbox" name="showAllSpraysCheckbox" value="showAllSpraysCheckbox">
+    <label for="showAllSpraysCheckbox">Enable additional sprays</label><br>
+    <input type="checkbox" id="cheaterPercentageAtTheTopCheckbox" name="cheaterPercentageAtTheTopCheckbox" value="cheaterPercentageAtTheTopCheckbox">
+    <label for="cheaterPercentageAtTheTopCheckbox">Cheater percentage at the top</label><br>
+    <input type="checkbox" id="fancyAnimationsCheckbox" name="fancyAnimationsCheckbox" value="fancyAnimationsCheckbox">
     <label for="fancyAnimations">Enable animations</label><br>
+
+    <input type="checkbox" id="suspiciousPointsCustomOrderCheckbox" name="suspiciousPointsCustomOrderCheckbox" value="suspiciousPointsCustomOrderCheckbox">
+    <label for="suspiciousPointsCustomOrderCheckbox">Custom suspicious points order</label><br>
+    <div id="suspiciousPointsCustomOrderEditable">
+        <textarea id="suspiciousPointsCustomOrderTextArea"></textarea>
+        <button id="suspiciousPointsCustomOrderSaveButton">Save</button>
+    </div>
+
+
+    <input type="checkbox" id="top10hltvCustomCheckbox" name="top10hltvCustomCheckbox" value="top10hltvCustomCheckbox">
+    <label for="top10hltvCustomCheckbox">Custom TOP 10 Players</label><br>
+    <div id="top10hltvCustomEditable">
+        <textarea id="top10hltvCustomTextArea"></textarea>
+        <button id="top10hltvCustomSaveButton">Save</button>
+    </div>
 
     <script src="popup.js"></script>
 </body>

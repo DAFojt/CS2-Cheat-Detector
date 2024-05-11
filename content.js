@@ -1,3 +1,9 @@
+// Chrome bug. https://stackoverflow.com/questions/66406672/how-do-i-import-scripts-into-a-service-worker-using-chrome-extension-manifest-ve
+try {
+    importScripts('cache.js', 'settings.js');
+  } catch (e) {
+}
+
 run();
 
 var playerData;
@@ -30,7 +36,7 @@ async function createInterface(playerData, skillCalculationsPromise, playerDetai
     mainDiv.className = 'cheat-detector-main';
     let cheaterDiv;
 
-    if(extensionSettings.cheaterPercentageAtTheTop) {
+    if(extensionSettings.cheaterPercentageAtTheTopEnabled) {
         cheaterDiv = document.createElement('div');
         mainDiv.appendChild(cheaterDiv);
     }
@@ -47,7 +53,7 @@ async function createInterface(playerData, skillCalculationsPromise, playerDetai
     let suspiciousPointsDiv = document.createElement('div');
     mainDiv.appendChild(suspiciousPointsDiv);
 
-    if(!extensionSettings.cheaterPercentageAtTheTop) {
+    if(!extensionSettings.cheaterPercentageAtTheTopEnabled) {
         cheaterDiv = document.createElement('div');
         mainDiv.appendChild(cheaterDiv);
     }
@@ -131,6 +137,8 @@ async function getPlayerDetails(playerDetailsPromise) {
 }
 
 async function getTopNHltvPlayersData() {
+    const extensionSettings = await (new Settings().extensionSettings);
+
     const topNHltvPlayersDataFromCachePromise = getCache('topNHltvPlayersData');
     const lastCalculationsDateFromCachePromise = getCache('lastCalculationsDate');
     let dateMinusDay = new Date();
@@ -138,7 +146,7 @@ async function getTopNHltvPlayersData() {
 
     return await Promise.all([topNHltvPlayersDataFromCachePromise, lastCalculationsDateFromCachePromise]).then(async cacheData => {
         if (!cacheData[0] || !cacheData[1] || new Date(cacheData[1]) < dateMinusDay) {
-            const topNHltvPlayers = (await getTop10HltvPlayers()).map(x => x.steam64Id);
+            const topNHltvPlayers = extensionSettings.top10hltvPlayers.map(x => x.steam64Id);
             const topNHltvPlayersDataFromApi = getPlayersDataFromApi(topNHltvPlayers);
             return await Promise.all(topNHltvPlayersDataFromApi).then(apiData => {
                 setCache('topNHltvPlayersData', apiData);
@@ -352,11 +360,12 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
         const matchesCount = skillCalculations.matchesCount;
         const result = skillCalculations.result;
         const { tab, tabContent } = await createTabWithContent('Suspicious points');
-        const top10HltvPlayers = await getTop10HltvPlayers();
+        const top10HltvPlayers = extensionSettings.top10hltvPlayers;
+        console.log(extensionSettings);
         if (isHltvProPlayer(player)) {
             return;
         }
-        else if(matchesCount > 10) {
+        else if(matchesCount >= extensionSettings.minMatchesCount) {
             result.avaiableStats().forEach(statistic => {
                 const suspiciousPoints = skillCalculations.result.getSuspiciousPointsByKey(statistic.key);
                 const innerDiv =  document.createElement('div');
@@ -386,7 +395,7 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
                         }
                 }
 
-                if(extensionSettings.fancyAnimations) {
+                if(extensionSettings.fancyAnimationsEnabled) {
                     for(let i = 0; i <= percent; i++) {
                         setTimeout(function(){
                             setProgressBar(i, statistic.includeInCheaterPercentage);
@@ -396,8 +405,6 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
                 else {
                     setProgressBar(percent, statistic.includeInCheaterPercentage);
                 }
-                
-                
                 
                 const innerAPb = document.createElement('div');
                 innerAPb.className = 'achievement_progress_bar_ctn';
@@ -446,7 +453,7 @@ async function createCheaterDiv(player, skillCalculationsPromise) {
         const cheaterInfoTextElement = document.createElement((cheaterPercentage < 50 || isHltvPlayer) ? 'h2' : 'h1');
         cheaterInfoTextElement.className = 'cheat-percentage-value';
 
-        if(matchesCount > extensionSettings.minMatchesCount) {
+        if(matchesCount >= extensionSettings.minMatchesCount) {
             let cheaterDiv = document.createElement('div');
             if (isHltvPlayer) {
                 cheaterInfoTextElement.textContent = 'HLTV PRO';
@@ -465,7 +472,7 @@ async function createCheaterDiv(player, skillCalculationsPromise) {
                             cheaterInfoTextElement.classList.add('cheat-percentage-high');
                         }
 
-                        if(extensionSettings.fancyAnimations) {
+                        if(extensionSettings.fancyAnimationsEnabled) {
                             if(percentage === 100) {
                                 for(let j = 0; j <= 26; j++) {
                                     setTimeout(function(){
@@ -480,7 +487,7 @@ async function createCheaterDiv(player, skillCalculationsPromise) {
                             }
                         }   
                 }
-                if(extensionSettings.fancyAnimations) {
+                if(extensionSettings.fancyAnimationsEnabled) {
                     for(let i = 0; i <= cheaterPercentage; i++){
                         setTimeout(function(){
                             setCheaterPercentage(i);
@@ -712,37 +719,6 @@ async function getPlayerDetailsData(id) {
     return fetch(`https://api.leetify.com/api/profile/${id}`).then(res => res.json()).catch(err => { console.error(err); throw err; }).finally(() => console.info('Player details API called'));
 }
 
-class Settings {
-    defaultSettings = {
-        showAllSprays: false,
-        cheaterPercentageAtTheTop: false,
-        fancyAnimations: true,
-        minMatchesCount: 10,
-        maxMatchesCount: 60
-    }
-
-    constructor() {
-        this.extensionSettings = getCache('extensionSettings').then(s => s ? s : this.defaultSettings );
-    }
-}
-
-function setCache(key, data) {
-    let obj = {};
-    obj[key] = JSON.stringify(data);
-
-    chrome.storage.local.set(obj).then(() => console.info("Data cached"));
-}
-
-async function getCache(key) {
-    return chrome.storage.local.get([key]).then((result) => {
-        if (result[key] === undefined) {
-            return null;
-        } else {
-            return JSON.parse(result[key]);
-        }
-    });
-}
-
 function getCordErrorForWeapon(s, cordLimit) {
     let sum = 0;
     const nonEmptyCords = s.coords.filter(c => c.playerX !== null && c.playerY !== null);
@@ -789,7 +765,6 @@ async function betterThan(player, topNHltvPlayersPromise) {
         getEnemysSteamId64FromStatByKeyWherePlayerIsWorse: (key) => playerComparisons.getStatsByKey(key).filter(s => !s.isPlayerBetter()).map(s => s.hltvPlayerSteam64Id),
         getAllSuspiciousPoints: () => playerComparisons.avaiableStats().filter(av => av.includeInCheaterPercentage).map(av => playerComparisons.getSuspiciousPointsByKey(av.key)),
         getSuspiciousPointsByKey: (key) => { return {points: playerComparisons.getStatsByKeyWherePlayerIsBetterLength(key), all: playerComparisons.getStatsByKeyLength(key), name: playerComparisons.getStatNameByKey(key), suspiciousBehaviour: playerComparisons.getStatSuspiciousBehaviourByKey(key)} },
-    
     };
 
 
@@ -799,8 +774,6 @@ async function betterThan(player, topNHltvPlayersPromise) {
         return playerComparisons;
     }
     let matchesCount;
-    const allMatchesCount = player?.games.filter(x => x.isCs2).length;
-
     topNHltvPlayersPromise.forEach(async (topNHltvPlayer) => {
         let playerComparison = {
             stats: [],
@@ -879,7 +852,7 @@ async function betterThan(player, topNHltvPlayersPromise) {
             });
 
             playerComparisonAdditionalStats = [];
-            if(extensionSettings.showAllSprays) {
+            if(extensionSettings.showAllSpraysEnabled) {
                 let internalOrder = 0;
                 sprayComparisons.filter(x => x.weaponLabel != "AK-47").forEach(spray => {
                     playerComparison.stats.push({
