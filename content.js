@@ -406,10 +406,11 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
                 }
 
                 if(extensionSettings.fancyAnimationsEnabled) {
+                    let someRandomDelay = Math.floor(Math.random() * 6) + 22;
                     for(let i = 0; i <= percent; i++) {
                         setTimeout(function(){
                             setProgressBar(i, statistic.includeInCheaterPercentage);
-                        }, i * 25);
+                        }, i * someRandomDelay);
                     }
                 }
                 else {
@@ -645,24 +646,35 @@ async function createCommentButton(player, skillCalculationsPromise) {
             return ' ' + top10HltvPlayers.find(t => t.steam64Id === x).nickname;
         });
         commentButton.onclick = () => {
-            steamCommentArea.focus();
-            let delay = 0;
-            delay += addTextFancy(steamCommentArea, 'Cheat detector audit:', delay, 50);
-            newLine(steamCommentArea, delay);
-            delay += addTextFancy(steamCommentArea, 'This account has better statistics than TOP ' + suspiciousPoints[0].all + ' HLTV players in the:', delay, 25);
-            newLine(steamCommentArea, delay);
-            for(let i = 0; i < comment.length; i++) {
+            if(extensionSettings.instantCommentEnabled) {
+                steamCommentArea.focus();
+                steamCommentArea.value = '';
+                steamCommentArea.value += 'Cheat detector audit:\n';
+                steamCommentArea.value += 'This account has better statistics than TOP ' + suspiciousPoints[0].all + ' HLTV players in the:\n\n';
+                steamCommentArea.value += comment.join('\n');
+                steamCommentArea.value += betterThan + '\n\n';
+                steamCommentArea.value += 'He is '+ scp.cheaterPercentage +'% cheater, checked automatically by CS2 Cheat Detector Chrome extension\n';
+                steamCommentArea.value += 'Data source: ' + dataSource + ' matches, demos analyzed: ' + scp.matchesCount;
+                steamCommentButton.click();
+                commentButton.disabled = true;
+            } else {
+                steamCommentArea.focus();
+                let delay = 0;
+                delay += addTextFancy(steamCommentArea, 'Cheat detector audit:', delay, 50);
+                newLine(steamCommentArea, delay);
+                delay += addTextFancy(steamCommentArea, 'This account has better statistics than TOP ' + suspiciousPoints[0].all + ' HLTV players in the:', delay, 25);
+                newLine(steamCommentArea, delay);
+                for(let i = 0; i < comment.length; i++) {
+                    newLine(steamCommentArea, delay + 500);
+                    delay += addTextLineAfterDelay(steamCommentArea, comment[i], delay, 500);
+                }
+                delay += addTextLineAfterDelay(steamCommentArea, betterThan, delay, 500);
+                newLine(steamCommentArea, delay, 2);
+                delay += addTextFancy(steamCommentArea, 'He is '+ scp.cheaterPercentage +'% cheater, checked automatically by CS2 Cheat Detector Chrome extension', delay, 35, 500);
                 newLine(steamCommentArea, delay + 500);
-                delay += addTextLineAfterDelay(steamCommentArea, comment[i], delay, 500);
+                delay += addTextLineAfterDelay(steamCommentArea, 'Data source: ' + dataSource + ' matches, demos analyzed: ' + scp.matchesCount, delay, 500);
+                commentButton.disabled = true;
             }
-            delay += addTextLineAfterDelay(steamCommentArea, betterThan, delay, 500);
-            newLine(steamCommentArea, delay, 2);
-            delay += addTextFancy(steamCommentArea, 'He is '+ scp.cheaterPercentage +'% cheater, checked automatically by CS2 Cheat Detector Chrome extension', delay, 35, 500);
-            newLine(steamCommentArea, delay + 500);
-            delay += addTextLineAfterDelay(steamCommentArea, 'Data source: ' + dataSource + ' matches, demos analyzed: ' + scp.matchesCount, delay, 500);
-
-            commentButton.click();
-            commentButton.disabled = true;
         }
     })
     return commentButton;

@@ -11,6 +11,8 @@ function run() {
     //document.getElementById("suspiciousPointsCustomOrderCheckbox").addEventListener("click", suspiciousPointsCustomOrderChanged);
     document.getElementById("top10hltvCustomCheckbox").addEventListener("click", top10hltvCustomChanged);
     document.getElementById("accuracyOverallCheckbox").addEventListener("click", accuracyOverallChanged);
+    document.getElementById("instantCommentCheckbox").addEventListener("click", instantCommentChanged);
+
 
     //document.getElementById("suspiciousPointsCustomOrderSaveButton").addEventListener("click", suspiciousPointsCustomOrderSaveOnClick);
     document.getElementById("top10hltvCustomSaveButton").addEventListener("click", top10hltvCustomSaveOnClick);
@@ -25,6 +27,7 @@ function run() {
         //document.getElementById("suspiciousPointsCustomOrderCheckbox").checked = es.suspiciousPointsCustomOrderEnabled;
         document.getElementById("top10hltvCustomCheckbox").checked = es.top10hltvCustomEnabled;
         document.getElementById("accuracyOverallCheckbox").checked = es.accuracyOverallEnabled;
+        document.getElementById("instantCommentCheckbox").checked = es.instantCommentEnabled;
 
         //document.getElementById("suspiciousPointsCustomOrderEditable").hidden = !es.suspiciousPointsCustomOrderEnabled;
         document.getElementById("top10hltvCustomEditable").hidden = !es.top10hltvCustomEnabled;
@@ -84,6 +87,15 @@ function top10hltvCustomChanged() {
     let settings = new Settings();
     settings.extensionSettings.then((st) => {
         st.top10hltvCustomEnabled = v;
+        settings.saveSettings();
+    });
+}
+
+function instantCommentChanged() {
+    let v = document.getElementById("instantCommentCheckbox").checked;
+    let settings = new Settings();
+    settings.extensionSettings.then((st) => {
+        st.instantCommentEnabled = v;
         settings.saveSettings();
     });
 }
