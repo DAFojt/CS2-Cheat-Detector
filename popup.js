@@ -94,28 +94,27 @@ function suspiciousPointsCustomOrderSaveOnClick() {
 
 function top10hltvCustomSaveOnClick() {
     const error = document.getElementById("top10hltvCustomError");
-    try 
-    {
+    try {
         let top10hltvPlayers;
         top10hltvPlayers = JSON.parse(document.getElementById("top10hltvCustomTextArea").value);
         console.log('tttt', top10hltvPlayers);
-        if(top10hltvPlayers.length > 10)
+        if (top10hltvPlayers.length > 10)
             throw 'Maximum number of top players: 10. Remove excessive records before saving.';
         var reg = /^\d+$/;
         top10hltvPlayers.forEach(element => {
             console.log(element.steam64Id, reg.test(element.steam64Id.length));
-            if(element.steam64Id.length != 17 || !reg.test(element.steam64Id))
+            if (element.steam64Id.length != 17 || !reg.test(element.steam64Id))
                 throw 'Wrong steam ID for ' + element.nickname;
         });
         let settings = new Settings();
         settings.extensionSettings.then((st) => {
-        st.top10hltvPlayers = top10hltvPlayers;
-        settings.saveSettings();
-        error.value = '';
-        error.hidden = true;
-        setCache('recalculateData', true);
-    });
-    } catch(e) {
+            st.top10hltvPlayers = top10hltvPlayers;
+            settings.saveSettings();
+            error.value = '';
+            error.hidden = true;
+            setCache('recalculateData', true);
+        });
+    } catch (e) {
         console.log(e);
         error.textContent = e;
         error.hidden = false;
@@ -144,7 +143,7 @@ class Settings {
 
     constructor() {
         this.extensionSettings = getCache('extensionSettings').then(s => s ? s : this.defaultSettings).then(async s => {
-            if(!s.top10hltvPlayers)
+            if (!s.top10hltvPlayers)
                 s.top10hltvPlayers = await getTop10HltvPlayers();
             return s;
         });
@@ -170,19 +169,25 @@ function setCache(key, data) {
     let obj = {};
     obj[key] = JSON.stringify(data);
 
-    chrome.storage.local.set(obj).then(() => console.info("Data " + key + " cached")).catch(e => console.error("Error while trying to cache data: " + key + " Error: " + e));
+    chrome.storage.local.set(obj)
+        .then(() => console.info("Data " + key + " cached"))
+        .catch(e => console.error("Error while trying to cache data: " + key + " Error: " + e));
 }
 
 async function getCache(key) {
-    return chrome.storage.local.get([key]).then((result) => {
-        if (result[key] === undefined) {
-            return null;
-        } else {
-            return JSON.parse(result[key]);
-        }
-    }).catch(e => console.error("Error while trying to get cache data: " + key + " Error: " + e));;
+    return chrome.storage.local.get([key])
+        .then((result) => {
+            if (result[key] === undefined) {
+                return null;
+            } else {
+                return JSON.parse(result[key]);
+            }
+        })
+        .catch(e => console.error("Error while trying to get cache data: " + key + " Error: " + e));;
 }
 
 function removeCache(key) {
-    chrome.storage.local.remove([key]).then(() => console.log("Data " + key + " removed from cache")).catch(e => console.error("Error while trying to delete cache data: " + key + " Error: " + e));
+    chrome.storage.local.remove([key])
+        .then(() => console.log("Data " + key + " removed from cache"))
+        .catch(e => console.error("Error while trying to remove cache data: " + key + " Error: " + e));
 }

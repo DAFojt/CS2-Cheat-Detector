@@ -2,6 +2,47 @@ p {
     margin-left: 2px;
 }
 
+@keyframes show-from-bottom-kf {
+    0%  {right:0px; bottom:-2000px;}
+    20% {right:0px; bottom:0px;}
+    80%  {right:0px; bottom:0px;}
+    100% {right:0px; bottom:-2000px;}
+  }
+
+.show-from-bottom {
+    animation: show-from-bottom-kf 0.15s;
+    animation-duration: 8s;
+}
+
+
+@keyframes tilt-shaking {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+  }
+
+.strong-shake {
+    animation: tilt-shaking 0.15s;
+  }
+
+.strong-shake-mid {
+    animation: tilt-shaking 0.15s;
+    animation-iteration-count: 6;
+  }
+
+.strong-shake-long {
+    animation: tilt-shaking 0.15s;
+    animation-iteration-count: 86;
+  }
+
 .center {
     display: flex;
     justify-content: space-between;
@@ -60,4 +101,12 @@ p {
 .superfluousButton {
     color: #8c9b57 !important;
     background: linear-gradient(to bottom, #657d11 5%, #536904 95%) !important;
+}
+
+.happy-gaben {
+    z-index: 20;
+    position: fixed;
+    height: 50%;
+    bottom: 0px;
+    right: 0px;
 }

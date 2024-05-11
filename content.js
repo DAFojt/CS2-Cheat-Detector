@@ -378,6 +378,10 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
 
                 const percent = 100 / suspiciousPoints.all * suspiciousPoints.points;
 
+                const innerAPb = document.createElement('div');
+                innerAPb.className = 'achievement_progress_bar_ctn';
+                innerAPb.style.width = '97%';
+
                 const innerPb = document.createElement('div');
                 innerPb.className = 'progress_bar';
                 innerPb.style.width = '0%';
@@ -392,6 +396,10 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
                                 innerPb.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgb(200 200 0) 80%)';
                             else if(percentage >= 70)
                                 innerPb.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgb(200 0 0) 80%)';
+
+                            if(percentage === 100 && extensionSettings.fancyAnimationsEnabled) {
+                                innerAPb.classList.add('strong-shake');
+                            }
                         } else {
                             innerPb.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgb(0 0 120) 80%)';
                         }
@@ -408,9 +416,6 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
                     setProgressBar(percent, statistic.includeInCheaterPercentage);
                 }
                 
-                const innerAPb = document.createElement('div');
-                innerAPb.className = 'achievement_progress_bar_ctn';
-                innerAPb.style.width = '97%';
                 const betterThan = skillCalculations.result.getEnemysSteamId64FromStatByKeyWherePlayerIsBetter(statistic.key);
                 const worseThan = skillCalculations.result.getEnemysSteamId64FromStatByKeyWherePlayerIsWorse(statistic.key);
                 innerDiv.title = 'Better ' + statistic.name.toLowerCase() + ' than ' + betterThan.length + ' of TOP ' + top10HltvPlayers.length +' HLTV players' 
@@ -454,28 +459,32 @@ async function createCheaterDiv(player, skillCalculationsPromise) {
         const isHltvPlayer = player.games.some(g => g.dataSource === 'hltv');
         const cheaterInfoTextElement = document.createElement((cheaterPercentage < 50 || isHltvPlayer) ? 'h2' : 'h1');
         cheaterInfoTextElement.className = 'cheat-percentage-value';
+        cheaterInfoTextElement.classList.add('cheat-percentage-low');
 
         if(matchesCount >= extensionSettings.minMatchesCount) {
             let cheaterDiv = document.createElement('div');
+            cheaterDiv.className = 'cheat-detector cheat-percentage-div'
             if (isHltvPlayer) {
                 cheaterInfoTextElement.textContent = 'HLTV PRO';
             }
             else {
                 const setCheaterPercentage = (percentage) => {
                     cheaterInfoTextElement.textContent = 'Cheater ' + percentage + '%';
-                        cheaterDiv.className = 'cheat-detector cheat-percentage-div'
-                        if (percentage < 50) {
-                            cheaterInfoTextElement.classList.add('cheat-percentage-low');
-                        }
-                        else if(percentage >= 50 && percentage < 80) {
+                        
+                        if(percentage === 50) {
                             cheaterInfoTextElement.classList.add('cheat-percentage-mid');
+                            cheaterDiv.classList.add('strong-shake');
                         }
-                        else if(percentage >= 80) {
+                        else if(percentage === 80) {
                             cheaterInfoTextElement.classList.add('cheat-percentage-high');
+                            cheaterDiv.classList.remove('strong-shake');
+                            cheaterDiv.classList.add('strong-shake-mid');
                         }
 
                         if(extensionSettings.fancyAnimationsEnabled) {
                             if(percentage === 100) {
+                                nicePokemon();
+                                cheaterDiv.classList.add('strong-shake-long');
                                 for(let j = 0; j <= 26; j++) {
                                     setTimeout(function(){
                                         if (j%2 === 0) {
@@ -980,4 +989,21 @@ function toValue(playerValueData, hltvPlayerValueData, percent = false) {
     const hltvPlayerValue = Math.round(hltvPlayerValueData.reduce((a, b) => a + b, 0) / hltvPlayerValueData.length * (percent ? 100 : 1) * 100) / 100;
 
     return [playerValue, hltvPlayerValue];
+}
+
+async function nicePokemon() {
+    getCache('happyGabenAchivementCompleted').then(isGabenHappy => {
+        if(!isGabenHappy) {
+            const happyGaben = document.createElement('img');
+            happyGaben.className = 'happy-gaben show-from-bottom';
+            happyGaben.src = chrome.runtime.getURL('images/eggs/gaben.png');
+            var gabenPlace = document.getElementsByClassName('flat_page profile_page has_profile_background MidnightTheme responsive_page')[0];
+            gabenPlace.prepend(happyGaben);
+            setTimeout(() => {
+                gabenPlace.removeChild(happyGaben);
+            }, 8000);
+            setCache('happyGabenAchivementCompleted', true);
+        }
+    })
+    
 }
