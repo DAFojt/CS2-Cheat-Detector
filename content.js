@@ -6,30 +6,33 @@ try {
 
 run();
 
-var playerData;
-var playerDetailsPromise;
+//for data that we don't want to refresh after changing the source of the matching data, prevents the data from being downloaded again for changes that don't require refreshing the browser window
+var playerDataSimpleCache;
+var playerDetailsPromiseSimpleCache;
+var playerFaceitDataPromiseSimpleCache
 
 var dataSource = 'all';
 
 async function run() {
-    playerData = playerData ?? await getPlayerData(window.location.toString());
-    if (!playerData || playerData.player.length === 0) {
+    playerDataSimpleCache = playerDataSimpleCache ?? await getPlayerData(window.location.toString());
+    if (!playerDataSimpleCache || playerDataSimpleCache.player.length === 0) {
         console.warn("Cheat detector: No api data");
         return;
     }
 
-    if(!playerDetailsPromise) {
-        const playerDataDetailsPromise = getPlayerDetailsData(playerData.player.steam64Id);
-        playerDetailsPromise = playerDetailsPromise ?? getPlayerDetails(playerDataDetailsPromise);
+    if(!playerDetailsPromiseSimpleCache) {
+        const playerDataDetailsPromise = getPlayerDetailsData(playerDataSimpleCache.player.steam64Id);
+        playerDetailsPromiseSimpleCache = parsePlayerDetails(playerDataDetailsPromise);
     }
+    playerFaceitDataPromiseSimpleCache = getPlayerFaceitData(playerDetailsPromiseSimpleCache.then(pd => pd.faceitNickname));
 
     const topNHltvPlayersDataPromise = getTopNHltvPlayersData();
-    const skillCalculationsPromise = calculate(playerData, topNHltvPlayersDataPromise);
+    const skillCalculationsPromise = calculate(playerDataSimpleCache, topNHltvPlayersDataPromise);
 
-    createInterface(playerData, skillCalculationsPromise, playerDetailsPromise);
+    createInterface(playerDataSimpleCache, skillCalculationsPromise, playerDetailsPromiseSimpleCache, playerFaceitDataPromiseSimpleCache);
 }
 
-async function createInterface(playerData, skillCalculationsPromise, playerDetailsPromise) {
+async function createInterface(playerData, skillCalculationsPromise, playerDetailsPromise, playerFaceitDataPromise) {
     const extensionSettings = await (new Settings().extensionSettings);
 
     let mainDiv = document.createElement('div');
@@ -65,19 +68,19 @@ async function createInterface(playerData, skillCalculationsPromise, playerDetai
         createInfoTab(playerData).then(tab => {
             if(tab) infoDiv.appendChild(tab);
         }),
-        createBannedTeammatesTab(playerDetailsPromise).then(tab => {
+        createBannedTeammatesTab(playerDetailsPromise, playerFaceitDataPromise).then(tab => {
             if(tab) detailsDiv.appendChild(tab);
         }),
-        createPlatformBansTab(playerDetailsPromise).then(tab => {
+        createPlatformBansTab(playerDetailsPromise, playerFaceitDataPromise).then(tab => {
             if(tab) platformBansDiv.appendChild(tab);
         }),
-        createSuspiciousTab(playerData, skillCalculationsPromise).then(tab => {
+        createSuspiciousTab(playerData, skillCalculationsPromise, playerFaceitDataPromise).then(tab => {
             if(tab) suspiciousPointsDiv.appendChild(tab);
         }),
-        createCheaterDiv(playerData, skillCalculationsPromise).then(div => {
+        createCheaterDiv(playerData, skillCalculationsPromise, playerFaceitDataPromise).then(div => {
             if(div) cheaterDiv.appendChild(div);
         }),
-        createButtonsDiv(playerData, skillCalculationsPromise).then(div => {
+        createButtonsDiv(playerData, skillCalculationsPromise, playerFaceitDataPromise).then(div => {
             if(div) buttonsDiv.appendChild(div);
         }),
     ];
@@ -120,7 +123,7 @@ function sigmoidFilter(input) {
     return sgmdv;
 }
 
-async function getPlayerDetails(playerDetailsPromise) {
+async function parsePlayerDetails(playerDetailsPromise) {
     return playerDetailsPromise.then(pd => {
         return {
             bannedTeammates: pd.teammates.filter(x => x.isBanned).map(x => {
@@ -147,7 +150,6 @@ async function getTopNHltvPlayersData() {
 
     return await Promise.all([topNHltvPlayersDataFromCachePromise, lastCalculationsDateFromCachePromise, recalculateDataPromise]).then(async cacheData => {
         if (!cacheData[0] || !cacheData[1] || new Date(cacheData[1]) < dateMinusDay || cacheData[2] === true) {
-            console.log(cacheData[2]);
             const topNHltvPlayers = extensionSettings.top10hltvPlayers.map(x => x.steam64Id);
             const topNHltvPlayersDataFromApi = getPlayersDataFromApi(topNHltvPlayers);
             setCache('recalculateData', false);
@@ -333,9 +335,15 @@ async function createBannedTeammatesTab(detailsPromise) {
     })
 }
 
-async function createPlatformBansTab(detailsPromise) {
+async function createPlatformBansTab(detailsPromise, playerFaceitDataPromise) {
     return detailsPromise.then(async detailsData => {
         const platformBans = detailsData.platformBans.filter(x => x !== 'matchmaking');
+        if(!platformBans.includes('faceit')) {
+            const playerFaceitData = await playerFaceitDataPromise;
+            if(playerFaceitData.platforms.registration_status === 'banned')
+                platformBans.push('faceit');
+        }
+            
         if(!detailsData || !detailsData.platformBans || platformBans.length === 0)
             return;
 
@@ -343,7 +351,8 @@ async function createPlatformBansTab(detailsPromise) {
 
         for(const platform of platformBans.filter(x => x !== 'matchmaking')) {
             const row = document.createElement('a');
-            // row.href = 'https://www.faceit.com/en/players/' + details.faceitNickname; //to do
+            if(detailsData.faceitNickname)
+                row.href = 'https://www.faceit.com/en/players/' + detailsData.faceitNickname;
             const img = document.createElement('img');
             img.title = platform;
             img.src = chrome.runtime.getURL('images/platform-logo/' + platform + '.png');
@@ -357,14 +366,15 @@ async function createPlatformBansTab(detailsPromise) {
     })
 }
 
-async function createSuspiciousTab(player, skillCalculationsPromise) {
+async function createSuspiciousTab(player, skillCalculationsPromise, playerFaceitDataPromise) {
     return skillCalculationsPromise.then(async skillCalculations => {
+        const playerFaceitData = await playerFaceitDataPromise;
         const extensionSettings = await (new Settings().extensionSettings);
         const matchesCount = skillCalculations.matchesCount;
         const result = skillCalculations.result;
         const { tab, tabContent } = await createTabWithContent('Suspicious points');
         const top10HltvPlayers = extensionSettings.top10hltvPlayers;
-        if (isHltvProPlayer(player)) {
+        if (isHltvProPlayer(player) || isEseaPlayer(playerFaceitData)) {
             return;
         }
         else if(matchesCount >= extensionSettings.minMatchesCount) {
@@ -452,23 +462,25 @@ async function createSuspiciousTab(player, skillCalculationsPromise) {
     })
 }
 
-async function createCheaterDiv(player, skillCalculationsPromise) {
+async function createCheaterDiv(player, skillCalculationsPromise, playerFaceitDataPromise) {
     const extensionSettings = await (new Settings().extensionSettings);
-    return skillCalculationsPromise.then(v => {
-        const matchesCount = v.matchesCount;
-        const cheaterPercentage = v.cheaterPercentage;
-        const isHltvPlayer = player.games.some(g => g.dataSource === 'hltv');
-        const cheaterInfoTextElement = document.createElement((cheaterPercentage < 50 || isHltvPlayer) ? 'h2' : 'h1');
-        cheaterInfoTextElement.className = 'cheat-percentage-value';
-        cheaterInfoTextElement.classList.add('cheat-percentage-low');
 
+    return skillCalculationsPromise.then(async skillCalculations => {
+        const matchesCount = skillCalculations.matchesCount;
+        const cheaterPercentage = skillCalculations.cheaterPercentage;
+        const cheaterInfoTextElement = document.createElement((cheaterPercentage < 50 || isHltvProPlayer(player) || isEseaPlayer(await playerFaceitDataPromise)) ? 'h2' : 'h1');
+        cheaterInfoTextElement.className = 'cheat-percentage-value';
+        
         if(matchesCount >= extensionSettings.minMatchesCount) {
             let cheaterDiv = document.createElement('div');
             cheaterDiv.className = 'cheat-detector cheat-percentage-div'
-            if (isHltvPlayer) {
+            if (isHltvProPlayer(player)) {
                 cheaterInfoTextElement.textContent = 'HLTV PRO';
+            } else if (isEseaPlayer(await playerFaceitDataPromise)) {
+                cheaterInfoTextElement.textContent = 'ESEA PLAYER';
             }
             else {
+                cheaterInfoTextElement.classList.add('cheat-percentage-low');
                 const setCheaterPercentage = (percentage) => {
                     cheaterInfoTextElement.textContent = 'Cheater ' + percentage + '%';
                         
@@ -484,7 +496,7 @@ async function createCheaterDiv(player, skillCalculationsPromise) {
 
                         if(extensionSettings.fancyAnimationsEnabled) {
                             if(percentage === 100) {
-                                nicePokemon();
+                                nicePokemonEasterEgg();
                                 cheaterDiv.classList.add('strong-shake-long');
                                 for(let j = 0; j <= 26; j++) {
                                     setTimeout(function(){
@@ -525,7 +537,7 @@ async function createCheaterDiv(player, skillCalculationsPromise) {
     })
 }
 
-async function createButtonsDiv(player, skillCalculationsPromise) {
+async function createButtonsDiv(player, skillCalculationsPromise, playerFaceitDataPromise) {
     const buttonsDiv = document.createElement('div');
     buttonsDiv.style.marginTop = '5px';
 
@@ -548,16 +560,15 @@ async function createButtonsDiv(player, skillCalculationsPromise) {
     buttonsRow1.className = 'cheat-detector-buttons'
     buttonsRow1.style.marginTop = '3px';
 
-    const buttonComment = await createCommentButton(player, skillCalculationsPromise);
+    const buttonComment = await createCommentButton(player, skillCalculationsPromise, playerFaceitDataPromise);
     buttonsRow1.appendChild(buttonComment);
-    const reportButton = createReportButton(player, skillCalculationsPromise);
+    const reportButton = await createReportButton(player, skillCalculationsPromise, playerFaceitDataPromise);
     buttonsRow1.appendChild(reportButton);
     const buttonLeetify = createLeetifyButton(player);
     buttonsRow1.appendChild(buttonLeetify);
     buttonsDiv.appendChild(buttonsRow1);
 
-    if (player.games.some(g => g.dataSource === 'hltv')) {
-        buttonSwitchDataSource.disabled = true;
+    if (isHltvProPlayer(player) || isEseaPlayer(await playerFaceitDataPromise)) {
         buttonComment.disabled = true;
         allButton.disabled = true;
         premierButton.disabled = true;
@@ -569,15 +580,15 @@ async function createButtonsDiv(player, skillCalculationsPromise) {
     return buttonsDiv;
 }
 
-function createReportButton(player, skillCalculationsPromise) {
+async function createReportButton(player, skillCalculationsPromise, playerFaceitDataPromise) {
     const reportButton = document.createElement('button');
     reportButton.innerText = 'Steam report';
     reportButton.className = 'btn_green_white_innerfade btn_large';
 
-    skillCalculationsPromise.then(skillCalculations => {
+    skillCalculationsPromise.then(async skillCalculations => {
         const suspiciousPoints = skillCalculations.result.getAllSuspiciousPoints();
         const suspiciousBehaviours = [...new Set(suspiciousPoints.filter(sp => 100/sp.all*sp.points >= 80).map(sp => sp.suspiciousBehaviour))];
-        if(suspiciousBehaviours.length === 0 || isUserProfile() || !isLoggedIn() || isHltvProPlayer(player)) {
+        if(suspiciousBehaviours.length === 0 || isUserProfile() || !isLoggedIn() || isHltvProPlayer(player) || isEseaPlayer(await playerFaceitDataPromise)) {
             reportButton.disabled = true;
             return;
         }
@@ -621,6 +632,10 @@ function isLoggedIn() {
 
 function isHltvProPlayer(player) {
     return !!player.games.some(g => g.dataSource === 'hltv');
+}
+
+function isEseaPlayer(player) {
+    return player?.memberships?.includes('esea') ?? false;
 }
 
 function isBanned() {
@@ -744,6 +759,22 @@ async function getPlayerData(id) {
 
 async function getPlayerDetailsData(id) {
     return fetch(`https://api.leetify.com/api/profile/${id}`).then(res => res.json()).catch(err => { console.error(err); throw err; }).finally(() => console.info('Player details API called'));
+}
+
+async function getPlayerFaceitData(faceitNicknamePromise) {
+    //steam cors bypass, code is in background.js
+    return faceitNicknamePromise.then(faceitNickname => {
+        return new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({ type: 'getFaceitPlayerData', faceitNickname: faceitNickname }, response => {
+                if(response)
+                    resolve(response);
+                else{
+                    console.warn('No Faceit API data');
+                    resolve(null);
+                }
+            })
+        });
+    })
 }
 
 function getCordErrorForWeapon(s, cordLimit) {
@@ -1014,7 +1045,7 @@ async function catchCheater(steam64Id, cheaterPercentage) {
             if(!cc) {
                 cc = [];
             }
-            let cheater = cc.find(c => c.steam64Id === steam64Id);
+            const cheater = cc.find(c => c.steam64Id === steam64Id);
             let rewrite = false;
             if(!!cheater && cheater.cheaterPercentage < cheaterPercentage) {
                 const index = cc.indexOf(cheater);
@@ -1032,15 +1063,15 @@ async function catchCheater(steam64Id, cheaterPercentage) {
     }
 }
 
-async function nicePokemon() {
+async function nicePokemonEasterEgg() {
     if(!isBanned()) {
-        let isGabenHappy = await getCache('happyGabenAchivementCompleted');
-        let showHappyGabenForEachNewObvCheaterEnabled = await getCache('showHappyGabenForEachNewObvCheaterEnabled');
+        const isGabenHappy = await getCache('happyGabenAchivementCompleted');
+        const showHappyGabenForEachNewObvCheaterEnabled = await getCache('showHappyGabenForEachNewObvCheaterEnabled');
         if(!isGabenHappy || showHappyGabenForEachNewObvCheaterEnabled) {
             const happyGaben = document.createElement('img');
             happyGaben.className = 'happy-gaben show-from-bottom';
             happyGaben.src = chrome.runtime.getURL('images/eggs/gaben.png');
-            var gabenPlace = document.getElementsByClassName('flat_page profile_page has_profile_background MidnightTheme responsive_page')[0];
+            const gabenPlace = document.getElementsByClassName('flat_page profile_page has_profile_background MidnightTheme responsive_page')[0];
             gabenPlace.prepend(happyGaben);
             setTimeout(() => {
                 gabenPlace.removeChild(happyGaben);

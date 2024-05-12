@@ -54,7 +54,7 @@ function run() {
     });
 }
 
-function showAllSpraysChanged() {
+async function showAllSpraysChanged() {
     let v = document.getElementById("showAllSpraysCheckbox").checked;
     let settings = new Settings();
     settings.extensionSettings.then((st) => {

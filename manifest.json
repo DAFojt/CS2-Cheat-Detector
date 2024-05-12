@@ -19,6 +19,9 @@
             "run_at": "document_end"
         }
     ],
+    "background": {
+        "service_worker": "background.js"
+      },
     "web_accessible_resources": [{
             "resources": [
                 "images/*",
@@ -33,5 +36,9 @@
         "tabs",
         "storage",
         "webNavigation"
+    ],
+    "host_permissions": [
+        "https://api.leetify.com/api/*",
+        "https://www.faceit.com/api/users/v1/*"
     ]
 }
