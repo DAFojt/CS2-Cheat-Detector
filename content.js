@@ -24,7 +24,9 @@ async function run() {
         const playerDataDetailsPromise = getPlayerDetailsData(playerDataSimpleCache.player.steam64Id);
         playerDetailsPromiseSimpleCache = parsePlayerDetails(playerDataDetailsPromise);
     }
-    playerFaceitDataPromiseSimpleCache = getPlayerFaceitData(playerDetailsPromiseSimpleCache.then(pd => pd.faceitNickname));
+    if(!playerFaceitDataPromiseSimpleCache) {
+        playerFaceitDataPromiseSimpleCache = getPlayerFaceitData(playerDetailsPromiseSimpleCache.then(pd => pd.faceitNickname));
+    }
 
     const topNHltvPlayersDataPromise = getTopNHltvPlayersData();
     const skillCalculationsPromise = calculate(playerDataSimpleCache, topNHltvPlayersDataPromise);
@@ -195,7 +197,7 @@ function removeOldMainDiv() {
     }
 }
 
-async function createTabWithContent(tabName) {
+async function createTabWithContent(tabName, notificationsCount) {
     const className = tabName.replaceAll(' ', '-').toLowerCase();
     const tab = document.createElement('div');
     tab.className = ('cheat-detector ' + className);
@@ -207,7 +209,7 @@ async function createTabWithContent(tabName) {
     tittleBox.className = 'box';
 
     const h3 = document.createElement('h3');
-    h3.textContent = tabName;
+    h3.textContent = notificationsCount > 0 ? `${tabName} (${notificationsCount})` : tabName;
 
     tittleBox.appendChild(h3);
     tab.appendChild(tittleBox);
@@ -297,7 +299,7 @@ async function createBannedTeammatesTab(detailsPromise) {
         if(!detailsData || detailsData.bannedTeammates.length === 0)
             return;
 
-        const {tab, tabContent} = await createTabWithContent('Banned teammates (' + detailsData.bannedTeammates.length + ')');
+        const {tab, tabContent} = await createTabWithContent('Banned teammates', detailsData.bannedTeammates.length);
 
         const bannedTeammatesDiv = document.createElement('div');
         bannedTeammatesDiv.className = 'profile_topfriends profile_count_link_preview';
@@ -340,14 +342,14 @@ async function createPlatformBansTab(detailsPromise, playerFaceitDataPromise) {
         const platformBans = detailsData.platformBans.filter(x => x !== 'matchmaking');
         if(!platformBans.includes('faceit')) {
             const playerFaceitData = await playerFaceitDataPromise;
-            if(playerFaceitData.platforms.registration_status === 'banned')
+            if(playerFaceitData?.platforms?.registration_status === 'banned')
                 platformBans.push('faceit');
         }
             
         if(!detailsData || !detailsData.platformBans || platformBans.length === 0)
             return;
 
-        const {tab, tabContent} = await createTabWithContent('Bans (' + platformBans.length + ')');
+        const {tab, tabContent} = await createTabWithContent('Bans', platformBans.length);
 
         for(const platform of platformBans.filter(x => x !== 'matchmaking')) {
             const row = document.createElement('a');
@@ -374,7 +376,7 @@ async function createSuspiciousTab(player, skillCalculationsPromise, playerFacei
         const result = skillCalculations.result;
         const { tab, tabContent } = await createTabWithContent('Suspicious points');
         const top10HltvPlayers = extensionSettings.top10hltvPlayers;
-        if (isHltvProPlayer(player) || isEseaPlayer(playerFaceitData)) {
+        if (isHltvProPlayer(player) || isFaceitProPlayer(playerFaceitData)) {
             return;
         }
         else if(matchesCount >= extensionSettings.minMatchesCount) {
@@ -468,7 +470,7 @@ async function createCheaterDiv(player, skillCalculationsPromise, playerFaceitDa
     return skillCalculationsPromise.then(async skillCalculations => {
         const matchesCount = skillCalculations.matchesCount;
         const cheaterPercentage = skillCalculations.cheaterPercentage;
-        const cheaterInfoTextElement = document.createElement((cheaterPercentage < 50 || isHltvProPlayer(player) || isEseaPlayer(await playerFaceitDataPromise)) ? 'h2' : 'h1');
+        const cheaterInfoTextElement = document.createElement((cheaterPercentage < 50 || isHltvProPlayer(player) || isFaceitProPlayer(await playerFaceitDataPromise)) ? 'h2' : 'h1');
         cheaterInfoTextElement.className = 'cheat-percentage-value';
         
         if(matchesCount >= extensionSettings.minMatchesCount) {
@@ -476,8 +478,8 @@ async function createCheaterDiv(player, skillCalculationsPromise, playerFaceitDa
             cheaterDiv.className = 'cheat-detector cheat-percentage-div'
             if (isHltvProPlayer(player)) {
                 cheaterInfoTextElement.textContent = 'HLTV PRO';
-            } else if (isEseaPlayer(await playerFaceitDataPromise)) {
-                cheaterInfoTextElement.textContent = 'ESEA PLAYER';
+            } else if (isFaceitProPlayer(await playerFaceitDataPromise)) {
+                cheaterInfoTextElement.textContent = 'FPL PRO';
             }
             else {
                 cheaterInfoTextElement.classList.add('cheat-percentage-low');
@@ -568,7 +570,7 @@ async function createButtonsDiv(player, skillCalculationsPromise, playerFaceitDa
     buttonsRow1.appendChild(buttonLeetify);
     buttonsDiv.appendChild(buttonsRow1);
 
-    if (isHltvProPlayer(player) || isEseaPlayer(await playerFaceitDataPromise)) {
+    if (isHltvProPlayer(player) || isFaceitProPlayer(await playerFaceitDataPromise)) {
         buttonComment.disabled = true;
         allButton.disabled = true;
         premierButton.disabled = true;
@@ -588,7 +590,7 @@ async function createReportButton(player, skillCalculationsPromise, playerFaceit
     skillCalculationsPromise.then(async skillCalculations => {
         const suspiciousPoints = skillCalculations.result.getAllSuspiciousPoints();
         const suspiciousBehaviours = [...new Set(suspiciousPoints.filter(sp => 100/sp.all*sp.points >= 80).map(sp => sp.suspiciousBehaviour))];
-        if(suspiciousBehaviours.length === 0 || isUserProfile() || !isLoggedIn() || isHltvProPlayer(player) || isEseaPlayer(await playerFaceitDataPromise)) {
+        if(suspiciousBehaviours.length === 0 || isUserProfile() || !isLoggedIn() || isHltvProPlayer(player) || isFaceitProPlayer(await playerFaceitDataPromise)) {
             reportButton.disabled = true;
             return;
         }
@@ -636,6 +638,22 @@ function isHltvProPlayer(player) {
 
 function isEseaPlayer(player) {
     return player?.memberships?.includes('esea') ?? false;
+}
+
+function isFaceitPlusPlayer(player) {
+    return player?.memberships?.includes('plus') ?? false;
+}
+
+function isFaceitPremiumPlayer(player) {
+    return player?.memberships?.includes('premium') ?? false;
+}
+
+function isFaceitProPlayer(player) {
+    return (player?.tags?.includes('pro') || player?.tags?.includes('FPL')) ?? false;
+}
+
+function isFaceitPhoneVerifiedPlayer(player) {
+    return player?.phone_verified ?? false;
 }
 
 function isBanned() {
@@ -766,6 +784,7 @@ async function getPlayerFaceitData(faceitNicknamePromise) {
     return faceitNicknamePromise.then(faceitNickname => {
         return new Promise((resolve, reject) => {
             chrome.runtime.sendMessage({ type: 'getFaceitPlayerData', faceitNickname: faceitNickname }, response => {
+                console.log('Faceit Data', faceitNickname, response);
                 if(response)
                     resolve(response);
                 else{

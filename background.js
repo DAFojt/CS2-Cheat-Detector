@@ -1,6 +1,8 @@
 //steam cors bypass
 chrome.runtime.onMessage.addListener(function (message, sender, senderResponse) {
     if (message.type === "getFaceitPlayerData") {
+      if(!message.faceitNickname)
+        senderResponse(null);
       getPlayerFaceitData(message.faceitNickname).then(res => senderResponse(res?.payload));
     }
     return true
