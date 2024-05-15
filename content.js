@@ -137,7 +137,8 @@ async function parsePlayerDetails(playerDetailsPromise) {
                 };
             }),
             platformBans: pd.meta.platformBans,
-            faceitNickname: pd.meta.faceitNickname
+            faceitNickname: pd.meta.faceitNickname,
+            esportalNickname: pd.meta.esportalNickname
         }});
 }
 
@@ -338,34 +339,37 @@ async function createBannedTeammatesTab(detailsPromise) {
 }
 
 async function createPlatformBansTab(detailsPromise, playerFaceitDataPromise) {
-    return detailsPromise.then(async detailsData => {
-        const platformBans = detailsData.platformBans.filter(x => x !== 'matchmaking');
-        if(!platformBans.includes('faceit')) {
-            const playerFaceitData = await playerFaceitDataPromise;
-            if(playerFaceitData?.platforms?.registration_status === 'banned')
-                platformBans.push('faceit');
+    const detailsData = await detailsPromise;
+    const platformBans = detailsData.platformBans.filter(x => x !== 'matchmaking');
+    if(!platformBans.includes('faceit')) {
+        const playerFaceitData = await playerFaceitDataPromise;
+        if(playerFaceitData?.platforms?.registration_status === 'banned')
+            platformBans.push('faceit');
+    }
+        
+    if(!detailsData || !detailsData.platformBans || platformBans.length === 0)
+        return;
+
+    const {tab, tabContent} = await createTabWithContent('Bans', platformBans.length);
+
+    for(const platform of platformBans.filter(x => x !== 'matchmaking')) {
+        const row = document.createElement('a');
+        if(platform === 'faceit' && detailsData.faceitNickname) {
+            row.href = 'https://www.faceit.com/en/players/' + detailsData.faceitNickname;
+        } else if (platform === 'esportal' && detailsData.esportalNickname) {
+            row.href = 'https://esportal.com/en/profile/' + detailsData.esportalNickname;
         }
             
-        if(!detailsData || !detailsData.platformBans || platformBans.length === 0)
-            return;
+        const img = document.createElement('img');
+        img.title = platform;
+        img.src = chrome.runtime.getURL('images/platform-logo/' + platform + '.png');
+        img.className = 'badge_icon small';
 
-        const {tab, tabContent} = await createTabWithContent('Bans', platformBans.length);
+        row.appendChild(img);
+        tabContent.appendChild(row);
+    }
 
-        for(const platform of platformBans.filter(x => x !== 'matchmaking')) {
-            const row = document.createElement('a');
-            if(detailsData.faceitNickname)
-                row.href = 'https://www.faceit.com/en/players/' + detailsData.faceitNickname;
-            const img = document.createElement('img');
-            img.title = platform;
-            img.src = chrome.runtime.getURL('images/platform-logo/' + platform + '.png');
-            img.className = 'badge_icon small';
-
-            row.appendChild(img);
-            tabContent.appendChild(row);
-        }
-
-        return tab;
-    })
+    return tab;
 }
 
 async function createSuspiciousTab(player, skillCalculationsPromise, playerFaceitDataPromise) {
@@ -784,7 +788,6 @@ async function getPlayerFaceitData(faceitNicknamePromise) {
     return faceitNicknamePromise.then(faceitNickname => {
         return new Promise((resolve, reject) => {
             chrome.runtime.sendMessage({ type: 'getFaceitPlayerData', faceitNickname: faceitNickname }, response => {
-                console.log('Faceit Data', faceitNickname, response);
                 if(response)
                     resolve(response);
                 else{
