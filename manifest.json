@@ -16,7 +16,7 @@
             "matches": ["https://steamcommunity.com/profiles*", "https://*.steamcommunity.com/id*"],
             "js": ["content.js", "cache.js", "settings.js"],
             "css": ["content.css"],
-            "run_at": "document_end"
+            "run_at": "document_idle"
         }
     ],
     "background": {

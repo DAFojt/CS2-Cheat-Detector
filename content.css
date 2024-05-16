@@ -7,13 +7,40 @@ p {
     20% {right:0px; bottom:0px;}
     80%  {right:0px; bottom:0px;}
     100% {right:0px; bottom:-2000px;}
-  }
-
-.show-from-bottom {
-    animation: show-from-bottom-kf 0.15s;
-    animation-duration: 8s;
 }
 
+.expand-container {
+    overflow: hidden;
+  }
+  
+.expand-contract {
+    border-bottom: 1px solid red;
+    margin-top: -100%;
+    transition: all 1s;
+  }
+  
+.expand-contract.expanded {
+     background-color: green;
+     margin-top: 0;
+  }
+
+.loader {
+    width: 60px;
+    aspect-ratio: 2;
+    --_g: no-repeat radial-gradient(circle closest-side,#bebebe 90%,#0000);
+    background: 
+      var(--_g) 0%   50%,
+      var(--_g) 50%  50%,
+      var(--_g) 100% 50%;
+    background-size: calc(100%/3) 50%;
+    animation: l3 1s infinite linear;
+  }
+  @keyframes l3 {
+      20%{background-position:0%   0%, 50%  50%,100%  50%}
+      40%{background-position:0% 100%, 50%   0%,100%  50%}
+      60%{background-position:0%  50%, 50% 100%,100%   0%}
+      80%{background-position:0%  50%, 50%  50%,100% 100%}
+}
 
 @keyframes tilt-shaking {
     0% { transform: translate(1px, 1px) rotate(0deg); }
@@ -49,6 +76,23 @@ p {
     align-items: center;
 }
 
+.hidden {
+    height:0px;
+    -webkit-transition:height, 0.5s linear;
+    -moz-transition: height, 0.5s linear;
+    -ms-transition: height, 0.5s linear;
+    -o-transition: height, 0.5s linear;
+    transition: height, 0.5s linear;
+}
+.hidden.open {
+    height:200px;
+    -webkit-transition:height, 0.5s linear;
+    -moz-transition: height, 0.5s linear;
+    -ms-transition: height, 0.5s linear;
+    -o-transition: height, 0.5s linear;
+    transition: height, 0.5s linear;
+}
+
 .box {
     display: flex;
     flex-wrap: wrap;
@@ -65,12 +109,9 @@ p {
 }
 
 .cheat-percentage-div {
-    padding: 5px 5px;
-}
-
-.cheat-percentage-value {
-    margin-left: 5px;
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     border: solid;
     border-radius: 5px;
 }

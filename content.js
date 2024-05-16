@@ -7,21 +7,22 @@ try {
 run();
 
 //for data that we don't want to refresh after changing the source of the matching data, prevents the data from being downloaded again for changes that don't require refreshing the browser window
-var playerDataSimpleCache;
+var playerDataPromiseSimpleCache;
 var playerDetailsPromiseSimpleCache;
 var playerFaceitDataPromiseSimpleCache
 
 var dataSource = 'all';
 
 async function run() {
-    playerDataSimpleCache = playerDataSimpleCache ?? await getPlayerData(window.location.toString());
-    if (!playerDataSimpleCache || playerDataSimpleCache.player.length === 0) {
-        console.info("Cheat detector: No api data");
-        return;
-    }
-
+    playerDataPromiseSimpleCache = playerDataPromiseSimpleCache ?? getPlayerData(window.location.toString());
+    playerDataPromiseSimpleCache.then(pd => {
+        if (!pd || pd.player.length === 0) {
+            console.info("Cheat detector: No api data");
+        }
+    })
+    
     if(!playerDetailsPromiseSimpleCache) {
-        const playerDataDetailsPromise = getPlayerDetailsData(playerDataSimpleCache.player.steam64Id);
+        const playerDataDetailsPromise = getPlayerDetailsData(playerDataPromiseSimpleCache.then(pd => pd.player.steam64Id));
         playerDetailsPromiseSimpleCache = parsePlayerDetails(playerDataDetailsPromise);
         playerDetailsPromiseSimpleCache.then(pd => {
             if (!pd) {
@@ -33,12 +34,24 @@ async function run() {
     }
 
     const topNHltvPlayersDataPromise = getTopNHltvPlayersData();
-    const skillCalculationsPromise = calculate(playerDataSimpleCache, topNHltvPlayersDataPromise);
+    const skillCalculationsPromise = calculate(playerDataPromiseSimpleCache, topNHltvPlayersDataPromise);
 
-    createInterface(playerDataSimpleCache, skillCalculationsPromise, playerDetailsPromiseSimpleCache, playerFaceitDataPromiseSimpleCache);
+    createInterface(playerDataPromiseSimpleCache, skillCalculationsPromise, playerDetailsPromiseSimpleCache, playerFaceitDataPromiseSimpleCache);
 }
 
-async function createInterface(playerData, skillCalculationsPromise, playerDetailsPromise, playerFaceitDataPromise) {
+async function createInterface(playerDataPromise, skillCalculationsPromise, playerDetailsPromise, playerFaceitDataPromise) {
+    const extDiv = getExtDiv();
+    let loaderDiv;
+    if(!isOldMainDivExist()) {
+        let loader = document.createElement('div');
+        loader.className = 'loader';
+        loaderDiv = document.createElement('div');
+        loaderDiv.className = 'cheat-detector cheat-percentage-div';
+        loaderDiv.appendChild(loader);
+        extDiv.appendChild(loaderDiv);
+    }
+
+    const playerData = await playerDataPromise;
     const extensionSettings = await (new Settings().extensionSettings);
 
     let mainDiv = document.createElement('div');
@@ -85,6 +98,8 @@ async function createInterface(playerData, skillCalculationsPromise, playerDetai
         }),
         createCheaterDiv(playerData, skillCalculationsPromise, playerFaceitDataPromise).then(div => {
             if(div) cheaterDiv.appendChild(div);
+            if(loaderDiv)
+                extDiv.removeChild(loaderDiv);
         }),
         createButtonsDiv(playerData, skillCalculationsPromise, playerFaceitDataPromise).then(div => {
             if(div) buttonsDiv.appendChild(div);
@@ -95,20 +110,17 @@ async function createInterface(playerData, skillCalculationsPromise, playerDetai
     if(isOldMainDivExist()) {
         Promise.all(uiPromises).then(() => {
             removeOldMainDiv();
-
-            let extDiv = getExtDiv();
             extDiv.appendChild(mainDiv);
         });
     }
     else {
-        let extDiv = getExtDiv();
         extDiv.appendChild(mainDiv);
     }
 }
 
 async function calculate(player, topNHltvPlayers) {
-    return topNHltvPlayers.then(async c => {
-        const result = await betterThan(player, c);
+    return Promise.all([player, topNHltvPlayers]).then(async c => {
+        const result = await betterThan(c[0], c[1]);
         let spSum = 0;
         let all = 0;
         let newSp = result.getAllSuspiciousPoints();
@@ -147,6 +159,7 @@ async function parsePlayerDetails(playerDetailsPromise) {
 }
 
 async function getTopNHltvPlayersData() {
+    await playerDataPromiseSimpleCache; //very crazy fix, without waiting for this settings.js script will not have time to load, todo fix this because its some sort of szpachla things
     const extensionSettings = await (new Settings().extensionSettings);
 
     const topNHltvPlayersDataFromCachePromise = getCache('topNHltvPlayersData');
@@ -209,7 +222,7 @@ async function createTabWithContent(tabName, notificationsCount) {
 
     const tabContent = document.createElement('div');
     tabContent.className = (className + '-content');
-
+    
     const tittleBox = document.createElement('div');
     tittleBox.className = 'box';
 
@@ -234,8 +247,9 @@ async function createTabWithContent(tabName, notificationsCount) {
 }
 
 function hideTabContent(contentClassName, imgId) {
-    let hidden = document.getElementsByClassName(contentClassName)[0].hidden;
-    document.getElementsByClassName(contentClassName)[0].hidden = !hidden;
+    const element = document.getElementsByClassName(contentClassName)[0]
+    let hidden = element.hidden;
+    element.hidden = !hidden;
     document.getElementById(imgId).src = chrome.runtime.getURL('images/eye' + (!hidden ? '-off' : '') + '.svg');
     setCache(contentClassName, !hidden);
 }
@@ -483,26 +497,26 @@ async function createCheaterDiv(player, skillCalculationsPromise, playerFaceitDa
         const cheaterPercentage = skillCalculations.cheaterPercentage;
         const cheaterInfoTextElement = document.createElement((cheaterPercentage < 50 || isHltvProPlayer(player) || isFaceitProPlayer(await playerFaceitDataPromise)) ? 'h2' : 'h1');
         cheaterInfoTextElement.className = 'cheat-percentage-value';
-        
+        let cheaterDiv = document.createElement('div');
+        cheaterDiv.className = 'cheat-detector cheat-percentage-div'
+
         if(matchesCount >= extensionSettings.minMatchesCount) {
-            let cheaterDiv = document.createElement('div');
-            cheaterDiv.className = 'cheat-detector cheat-percentage-div'
             if (isHltvProPlayer(player)) {
                 cheaterInfoTextElement.textContent = 'HLTV PRO';
             } else if (isFaceitProPlayer(await playerFaceitDataPromise)) {
                 cheaterInfoTextElement.textContent = 'FPL PRO';
             }
             else {
-                cheaterInfoTextElement.classList.add('cheat-percentage-low');
+                cheaterDiv.classList.add('cheat-percentage-low');
                 const setCheaterPercentage = (percentage) => {
                     cheaterInfoTextElement.textContent = 'Cheater ' + percentage + '%';
                         
                         if(percentage === 50) {
-                            cheaterInfoTextElement.classList.add('cheat-percentage-mid');
+                            cheaterDiv.classList.add('cheat-percentage-mid');
                             cheaterDiv.classList.add('strong-shake');
                         }
                         else if(percentage === 80) {
-                            cheaterInfoTextElement.classList.add('cheat-percentage-high');
+                            cheaterDiv.classList.add('cheat-percentage-high');
                             cheaterDiv.classList.remove('strong-shake');
                             cheaterDiv.classList.add('strong-shake-mid');
                         }
@@ -545,7 +559,8 @@ async function createCheaterDiv(player, skillCalculationsPromise, playerFaceitDa
             let h2 = document.createElement('h2');
             h2.textContent = 'Not enough data';
             h2.style.textAlign = 'center';
-            return h2;
+            cheaterDiv.appendChild(h2)
+            return cheaterDiv;
         }
     })
 }
@@ -557,46 +572,54 @@ async function createButtonsDiv(player, skillCalculationsPromise, playerFaceitDa
     const buttonsRow = document.createElement('div');
     buttonsRow.className = 'cheat-detector-buttons'
 
-    const allButton = await createSwitchButton('All', player.games.length);
+    const allButton = createSwitchButton('All', player.games.length);
     buttonsRow.appendChild(allButton);
-    const premierButton = await createSwitchButton('Premier', player.games.filter(g => g.dataSource === 'matchmaking').length);
+    const premierButton = createSwitchButton('Premier', player.games.filter(g => g.dataSource === 'matchmaking').length);
     buttonsRow.appendChild(premierButton);
-    const faceitButton = await createSwitchButton('Faceit', player.games.filter(g => g.dataSource === 'faceit').length);
+    const faceitButton = createSwitchButton('Faceit', player.games.filter(g => g.dataSource === 'faceit').length);
     buttonsRow.appendChild(faceitButton);
-    const wingmanButton = await createSwitchButton('Wingman', player.games.filter(g => g.dataSource === 'matchmaking_wingman').length);
+    const wingmanButton = createSwitchButton('Wingman', player.games.filter(g => g.dataSource === 'matchmaking_wingman').length);
     buttonsRow.appendChild(wingmanButton);
-    const premierWgmButton = await createSwitchButton('Premier+Wgm', player.games.filter(g => g.dataSource === 'matchmaking').length + player.games.filter(g => g.dataSource === 'matchmaking_wingman').length);
+    const premierWgmButton = createSwitchButton('Premier+Wgm', player.games.filter(g => g.dataSource === 'matchmaking').length + player.games.filter(g => g.dataSource === 'matchmaking_wingman').length);
     buttonsRow.appendChild(premierWgmButton);
     buttonsDiv.appendChild(buttonsRow);
+
 
     const buttonsRow1 = document.createElement('div');
     buttonsRow1.className = 'cheat-detector-buttons'
     buttonsRow1.style.marginTop = '3px';
 
-    const buttonComment = await createCommentButton(player, skillCalculationsPromise, playerFaceitDataPromise);
+    const buttonComment = createCommentButton(player, skillCalculationsPromise, playerFaceitDataPromise);
     buttonsRow1.appendChild(buttonComment);
-    const reportButton = await createReportButton(player, skillCalculationsPromise, playerFaceitDataPromise);
+    const reportButton = createReportButton(player, skillCalculationsPromise, playerFaceitDataPromise);
+    console.log('rb', reportButton);
     buttonsRow1.appendChild(reportButton);
     const buttonLeetify = createLeetifyButton(player);
     buttonsRow1.appendChild(buttonLeetify);
     buttonsDiv.appendChild(buttonsRow1);
 
-    if (isHltvProPlayer(player) || isFaceitProPlayer(await playerFaceitDataPromise)) {
-        buttonComment.disabled = true;
-        allButton.disabled = true;
-        premierButton.disabled = true;
-        faceitButton.disabled = true;
-        wingmanButton.disabled = true;
-        premierWgmButton.disabled = true;
-    }
 
+
+
+    playerFaceitDataPromise.then(fdp => {
+        if (isHltvProPlayer(player) && isFaceitProPlayer(fdp)) {
+            buttonComment.disabled = true;
+            allButton.disabled = true;
+            premierButton.disabled = true;
+            faceitButton.disabled = true;
+            wingmanButton.disabled = true;
+            premierWgmButton.disabled = true;
+        }
+    })
+    
     return buttonsDiv;
 }
 
-async function createReportButton(player, skillCalculationsPromise, playerFaceitDataPromise) {
+function createReportButton(player, skillCalculationsPromise, playerFaceitDataPromise) {
     const reportButton = document.createElement('button');
     reportButton.innerText = 'Steam report';
     reportButton.className = 'btn_green_white_innerfade btn_large';
+    reportButton.disabled = true;
 
     skillCalculationsPromise.then(async skillCalculations => {
         const suspiciousPoints = skillCalculations.result.getAllSuspiciousPoints();
@@ -605,6 +628,7 @@ async function createReportButton(player, skillCalculationsPromise, playerFaceit
             reportButton.disabled = true;
             return;
         }
+        reportButton.disabled = false;
     
         reportButton.onclick = () => {
             const dropdownButton = document.getElementById('profile_action_dropdown_link');
@@ -671,18 +695,20 @@ function isBanned() {
     return document.getElementsByClassName('profile_ban_status').length > 0;
 }
 
-async function createCommentButton(player, skillCalculationsPromise) {
-    const extensionSettings = await (new Settings().extensionSettings);
+function createCommentButton(player, skillCalculationsPromise) {
     const commentButton = document.createElement('button');
+    commentButton.disabled = true;
     commentButton.innerText = 'Add comment';
     commentButton.className = 'btn_green_white_innerfade btn_large';
     const steamCommentArea = document.getElementsByClassName('commentthread_textarea')[0];
     const steamCommentButton = document.getElementById('commentthread_Profile_'+player.player.steam64Id+'_submit');
 
     skillCalculationsPromise.then(async scp => {
+        const extensionSettings = await (new Settings().extensionSettings);
+
         if(!steamCommentArea || !steamCommentButton || isUserProfile() || !isLoggedIn() || scp.cheaterPercentage < 70 || scp.matchesCount < extensionSettings.minMatchesCount) {
             commentButton.disabled = true;
-            return commentButton;
+            return;
         }
         const suspiciousPoints = scp.result.getAllSuspiciousPoints().filter(x => x.points > 0);
         let comment = [];
@@ -693,6 +719,7 @@ async function createCommentButton(player, skillCalculationsPromise) {
         const betterThan = '\nBetter than:' + [... new Set(scp.result.avaiableStats().flatMap(av => scp.result.getEnemysSteamId64FromStatByKeyWherePlayerIsBetter(av.key)))].map(x => {
             return ' ' + top10HltvPlayers.find(t => t.steam64Id === x).nickname;
         });
+        commentButton.disabled = false;
         commentButton.onclick = () => {
             if(extensionSettings.instantCommentEnabled) {
                 steamCommentArea.focus();
@@ -724,6 +751,7 @@ async function createCommentButton(player, skillCalculationsPromise) {
                 commentButton.disabled = true;
             }
         }
+        faceitNickname;
     })
     return commentButton;
 }
@@ -766,15 +794,19 @@ function createLeetifyButton(player) {
     return leetifyAnchor;
 }
 
-async function createSwitchButton(requestedDataSource, matchesCount) {
-    const extensionSettings = await (new Settings().extensionSettings);
+function createSwitchButton(requestedDataSource, matchesCount) {
     const sourceButton = document.createElement('button');
     sourceButton.innerText = requestedDataSource;
     sourceButton.classList.add('btn_green_white_innerfade');
     sourceButton.classList.add('btn_large');
-    if(matchesCount < extensionSettings.minMatchesCount){ 
-        sourceButton.classList.add('superfluousButton');
-    }
+    sourceButton.classList.add('superfluousButton');
+
+    (new Settings().extensionSettings).then(extensionSettings => {
+        if(matchesCount >= extensionSettings.minMatchesCount){ 
+            sourceButton.classList.remove('superfluousButton');
+        }
+    });
+    
     sourceButton.onclick = () => {
         dataSource = requestedDataSource.toLowerCase();
         this.run();
@@ -786,7 +818,8 @@ async function getPlayerData(id) {
     return fetch(`https://api.leetify.com/api/compare?friendName=${id}&period=2`).then(res => res.ok ? res.json() : null).catch(err => { console.info(err); return null; }).finally(() => console.info('Player data API called'));
 }
 
-async function getPlayerDetailsData(id) {
+async function getPlayerDetailsData(idPromise) {
+    const id = await idPromise;;
     return fetch(`https://api.leetify.com/api/profile/${id}`).then(res => res.ok ? res.json() : null).catch(err => { console.info(err); return null; }).finally(() => console.info('Player details API called'));
 }
 
@@ -794,10 +827,11 @@ async function getPlayerFaceitData(faceitNicknamePromise) {
     //steam cors bypass, code is in background.js
     if(!faceitNicknamePromise)
         return;
-
     return faceitNicknamePromise.then(faceitNickname => {
+        console.info('Faceit API called', faceitNickname)
         return new Promise((resolve, reject) => {
             chrome.runtime.sendMessage({ type: 'getFaceitPlayerData', faceitNickname: faceitNickname }, response => {
+                console.log(response);
                 if(response)
                     resolve(response);
                 else{
@@ -828,7 +862,7 @@ function getCordErrorValue(coord) {
 }
 
 async function betterThan(player, topNHltvPlayersPromise) {
-    const extensionSettings = await (new Settings().extensionSettings);
+    const extensionSettings = await new Settings().extensionSettings;
     let matches = player?.games.filter(x => x.isCs2);
 
     let playerComparisons = {
