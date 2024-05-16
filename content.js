@@ -16,16 +16,20 @@ var dataSource = 'all';
 async function run() {
     playerDataSimpleCache = playerDataSimpleCache ?? await getPlayerData(window.location.toString());
     if (!playerDataSimpleCache || playerDataSimpleCache.player.length === 0) {
-        console.warn("Cheat detector: No api data");
+        console.info("Cheat detector: No api data");
         return;
     }
 
     if(!playerDetailsPromiseSimpleCache) {
         const playerDataDetailsPromise = getPlayerDetailsData(playerDataSimpleCache.player.steam64Id);
         playerDetailsPromiseSimpleCache = parsePlayerDetails(playerDataDetailsPromise);
+        playerDetailsPromiseSimpleCache.then(pd => {
+            if (!pd) {
+            console.info("Cheat detector: No player details data")};
+        });
     }
     if(!playerFaceitDataPromiseSimpleCache) {
-        playerFaceitDataPromiseSimpleCache = getPlayerFaceitData(playerDetailsPromiseSimpleCache.then(pd => pd.faceitNickname));
+        playerFaceitDataPromiseSimpleCache = getPlayerFaceitData(playerDetailsPromiseSimpleCache.then(pd => pd?.faceitNickname));
     }
 
     const topNHltvPlayersDataPromise = getTopNHltvPlayersData();
@@ -127,7 +131,7 @@ function sigmoidFilter(input) {
 
 async function parsePlayerDetails(playerDetailsPromise) {
     return playerDetailsPromise.then(pd => {
-        return {
+        return pd ? {
             bannedTeammates: pd.teammates.filter(x => x.isBanned).map(x => {
                 return {
                     steam64Id: x.steam64Id,
@@ -139,7 +143,7 @@ async function parsePlayerDetails(playerDetailsPromise) {
             platformBans: pd.meta.platformBans,
             faceitNickname: pd.meta.faceitNickname,
             esportalNickname: pd.meta.esportalNickname
-        }});
+        } : null});
 }
 
 async function getTopNHltvPlayersData() {
@@ -237,7 +241,7 @@ function hideTabContent(contentClassName, imgId) {
 }
 
 async function createInfoTab(player) {
-    if(!player?.player || player.player.length === 0)
+    if(!player?.player || player.player.length === 0 || (player.player.highestRanks.matchmaking <= 18 && player.player.currentRanks.matchmaking <= 18 && !player.player.highestRanks.faceit && !player.player.currentRanks.faceit))
         return;
 
     let {tab, tabContent} = await createTabWithContent('Player info');
@@ -340,6 +344,9 @@ async function createBannedTeammatesTab(detailsPromise) {
 
 async function createPlatformBansTab(detailsPromise, playerFaceitDataPromise) {
     const detailsData = await detailsPromise;
+    if(!detailsData)
+        return;
+
     const platformBans = detailsData.platformBans.filter(x => x !== 'matchmaking');
     if(!platformBans.includes('faceit')) {
         const playerFaceitData = await playerFaceitDataPromise;
@@ -776,22 +783,25 @@ async function createSwitchButton(requestedDataSource, matchesCount) {
 }
 
 async function getPlayerData(id) {
-    return fetch(`https://api.leetify.com/api/compare?friendName=${id}&period=2`).then(res => res.json()).catch(err => { console.error(err); throw err; }).finally(() => console.info('Player data API called'));
+    return fetch(`https://api.leetify.com/api/compare?friendName=${id}&period=2`).then(res => res.ok ? res.json() : null).catch(err => { console.info(err); return null; }).finally(() => console.info('Player data API called'));
 }
 
 async function getPlayerDetailsData(id) {
-    return fetch(`https://api.leetify.com/api/profile/${id}`).then(res => res.json()).catch(err => { console.error(err); throw err; }).finally(() => console.info('Player details API called'));
+    return fetch(`https://api.leetify.com/api/profile/${id}`).then(res => res.ok ? res.json() : null).catch(err => { console.info(err); return null; }).finally(() => console.info('Player details API called'));
 }
 
 async function getPlayerFaceitData(faceitNicknamePromise) {
     //steam cors bypass, code is in background.js
+    if(!faceitNicknamePromise)
+        return;
+
     return faceitNicknamePromise.then(faceitNickname => {
         return new Promise((resolve, reject) => {
             chrome.runtime.sendMessage({ type: 'getFaceitPlayerData', faceitNickname: faceitNickname }, response => {
                 if(response)
                     resolve(response);
                 else{
-                    console.warn('No Faceit API data');
+                    console.info('No Faceit API data');
                     resolve(null);
                 }
             })
