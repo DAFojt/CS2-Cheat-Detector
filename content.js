@@ -602,7 +602,8 @@ async function createButtonsDiv(player, skillCalculationsPromise, playerFaceitDa
 
 
     playerFaceitDataPromise.then(fdp => {
-        if (isHltvProPlayer(player) && isFaceitProPlayer(fdp)) {
+        if (isHltvProPlayer(player) || isFaceitProPlayer(fdp)) {
+            reportButton.disabled = true;
             buttonComment.disabled = true;
             allButton.disabled = true;
             premierButton.disabled = true;
