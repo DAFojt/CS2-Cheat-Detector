@@ -23,8 +23,8 @@ class Settings {
     }
 
     saveSettings() {
-        this.extensionSettings.then(st => {
-            setCache('extensionSettings', st);
+        this.extensionSettings.then(es => {
+            setCache('extensionSettings', es);
         })
     }
 
@@ -36,5 +36,5 @@ class Settings {
 }
 
 async function getTop10HltvPlayers() {
-    return await fetch(chrome.runtime.getURL('data/top10HltvPlayers.json')).then(response => { return response.json() });
+    return await fetch(chrome.runtime.getURL('../resources/defaultTop10HltvPlayers.json')).then(response => { return response.json() });
 }

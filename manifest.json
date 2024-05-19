@@ -4,28 +4,27 @@
     "version": "0.1.0",
     "description": "Cheat detector is ready.",
     "action": {
-        "default_popup": "popup.html",
+        "default_popup": "popup/popup.html",
         "default_icon": {
-            "16": "images/icon16.png",
-            "24": "images/icon24.png",
-            "32": "images/icon32.png"
+            "16": "resources/images/icon16.png",
+            "24": "resources/images/icon24.png",
+            "32": "resources/images/icon32.png"
         }
     },
     "content_scripts": [
         {
             "matches": ["https://steamcommunity.com/profiles*", "https://*.steamcommunity.com/id*"],
-            "js": ["content.js", "cache.js", "settings.js"],
+            "js": ["content.js", "cache/cache.js", "settings/settings.js", "repository/repository.js", "interface/interface.js", "interface/interfaceTools.js", "interface/interfaceCheckers.js", "calculation/calculator.js", "other/easterEggs.js"],
             "css": ["content.css"],
             "run_at": "document_idle"
         }
     ],
     "background": {
-        "service_worker": "background.js"
+        "service_worker": "background-services/background.js"
       },
     "web_accessible_resources": [{
             "resources": [
-                "images/*",
-                "data/*"
+                "resources/*"
             ],
             "matches": [
                 "*://*/*"

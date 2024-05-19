@@ -18,13 +18,16 @@ function run() {
 
 function initAchivementsTab(cheaters, settings) {
     const pc80CheatersTd = document.getElementById("cheaters80percent");
+    const pc95CheatersTd = document.getElementById("cheaters95percent");
     const pc100CheatersTd = document.getElementById("cheaters100percent");
     const statsTable = document.getElementById('statsTable');
 
-    const pc80Cheaters = cheaters?.filter(c => c.cheaterPercentage >= 80 && c.cheaterPercentage < 100);
+    const pc80Cheaters = cheaters?.filter(c => c.cheaterPercentage >= 80 && c.cheaterPercentage < 95);
+    const pc95Cheaters = cheaters?.filter(c => c.cheaterPercentage >= 95 && c.cheaterPercentage < 100);
     const pc100Cheaters = cheaters?.filter(c => c.cheaterPercentage === 100);
 
     pc80CheatersTd.textContent = pc80Cheaters?.length ?? 0;
+    pc95CheatersTd.textContent = pc95Cheaters?.length ?? 0;
     pc100CheatersTd.textContent = pc100Cheaters?.length ?? 0;
 
     statsTable.title = 'Steam ids:\n80%-99%:\n' + (pc80Cheaters?.length > 0 ? pc80Cheaters.map(c => c.steam64Id).join('\n') : '-') + '\n100%:\n' + (pc100Cheaters?.length > 0 ? pc100Cheaters.map(c => c.steam64Id).join('\n') : '-');
@@ -32,28 +35,38 @@ function initAchivementsTab(cheaters, settings) {
         document.getElementById('hiddenOptions').hidden = false;
 
 
-    if (settings.expandCheatersTable) {
-        pc80Cheaters.forEach(pc80 => {
-            let row = statsTable.insertRow(1);
-            let cell1 = row.insertCell(0);
-            let cell2 = row.insertCell(1);
-            let link = document.createElement('a');
-            link.text = 'Profile';
-            link.href = 'https://steamcommunity.com/profiles/' + pc80.steam64Id;
-            cell1.textContent = pc80.steam64Id;
-            cell2.appendChild(link);
-        });
-        pc100Cheaters.forEach(pc80 => {
-            let row = statsTable.insertRow(2 + pc80Cheaters.length);
-            let cell1 = row.insertCell(0);
-            let cell2 = row.insertCell(1);
-            let link = document.createElement('a');
-            link.text = 'Profile';
-            link.href = 'https://steamcommunity.com/profiles/' + pc80.steam64Id;
-            cell1.textContent = pc80.steam64Id;
-            cell2.appendChild(link);
-        });
-    }
+    //if (settings.expandCheatersTable) {
+        // pc80Cheaters.forEach(pc80 => {
+        //     let row = statsTable.insertRow(1);
+        //     let cell1 = row.insertCell(0);
+        //     let cell2 = row.insertCell(1);
+        //     let link = document.createElement('a');
+        //     link.text = 'Profile';
+        //     link.href = 'https://steamcommunity.com/profiles/' + pc80.steam64Id;
+        //     cell1.textContent = pc80.steam64Id;
+        //     cell2.appendChild(link);
+        // });
+        // pc95Cheaters.forEach(pc95 => {
+        //     let row = statsTable.insertRow(2 + pc80Cheaters.length);
+        //     let cell1 = row.insertCell(0);
+        //     let cell2 = row.insertCell(1);
+        //     let link = document.createElement('a');
+        //     link.text = 'Profile';
+        //     link.href = 'https://steamcommunity.com/profiles/' + pc95.steam64Id;
+        //     cell1.textContent = pc95.steam64Id;
+        //     cell2.appendChild(link);
+        // });
+        // pc100Cheaters.forEach(pc100 => {
+        //     let row = statsTable.insertRow(2 + pc95Cheaters.length + 2 + pc80Cheaters.length);
+        //     let cell1 = row.insertCell(0);
+        //     let cell2 = row.insertCell(1);
+        //     let link = document.createElement('a');
+        //     link.text = 'Profile';
+        //     link.href = 'https://steamcommunity.com/profiles/' + pc100.steam64Id;
+        //     cell1.textContent = pc100.steam64Id;
+        //     cell2.appendChild(link);
+        // });
+    //}
 }
 
 function initValues(es) {
@@ -230,7 +243,7 @@ class Settings {
 }
 
 async function getTop10HltvPlayers() {
-    return await fetch(chrome.runtime.getURL('data/top10HltvPlayers.json')).then(response => { return response.json() });
+    return await fetch(chrome.runtime.getURL('../resources/defaultTop10HltvPlayers.json')).then(response => { return response.json() });
 }
 
 function setCache(key, data) {

@@ -21,6 +21,6 @@ async function getCache(key) {
 
 function removeCache(key) {
     chrome.storage.local.remove([key])
-        .then(() => console.log("Data " + key + " removed from cache"))
+        .then(() => console.info("Data " + key + " removed from cache"))
         .catch(e => console.error("Error while trying to remove cache data: " + key + " Error: " + e));
 }
