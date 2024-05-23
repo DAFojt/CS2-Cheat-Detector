@@ -1,24 +1,23 @@
 // Chrome bug. https://stackoverflow.com/questions/66406672/how-do-i-import-scripts-into-a-service-worker-using-chrome-extension-manifest-ve
 try {
     importScripts('repository.js', 'interface.js', 'calculator.js');
-  } catch (e) {
-}
+  } catch (e) {}
 
-//very crazy fix, without it scripts dont have time to load, fix it
+//very crazy fix, without it the scripts won't load, some chrome bug? or am I an idiot?
 setTimeout(() => {
     run();
-}, 1)
+}, 0)
 
 
-//for data that we don't want to refresh after changing the source of the matching data, prevents the data from being downloaded again for changes that don't require refreshing the browser window
+//for data that we don't want to refresh after changing the source of the matches data, prevents the data from being downloaded again for changes that don't require refreshing the browser window
 var playerDataPromiseSimpleCache;
 var playerDetailsPromiseSimpleCache;
 var playerFaceitDataPromiseSimpleCache;
 
 var dataSource = 'all';
 
-async function run() {
-    playerDataPromiseSimpleCache = playerDataPromiseSimpleCache ?? getPlayerData(window.location.toString());
+function run() {
+    playerDataPromiseSimpleCache = playerDataPromiseSimpleCache ?? PlayerRepository.getPlayerData(window.location.toString());
     playerDataPromiseSimpleCache.then(pd => {
         if (!pd || pd.player.length === 0) {
             console.info("Cheat detector: No api data");
@@ -26,8 +25,7 @@ async function run() {
     })
     
     if(!playerDetailsPromiseSimpleCache) {
-        const playerDataDetailsPromise = getPlayerDetailsData(playerDataPromiseSimpleCache.then(pd => pd.player.steam64Id));
-        playerDetailsPromiseSimpleCache = parsePlayerDetails(playerDataDetailsPromise);
+        playerDetailsPromiseSimpleCache = PlayerRepository.getPlayerDetailsData(playerDataPromiseSimpleCache.then(pd => pd.player.steam64Id));
         playerDetailsPromiseSimpleCache.then(pd => {
             if (!pd) {
                 console.info("Cheat detector: No player details data")
@@ -35,18 +33,23 @@ async function run() {
         });
     }
     if(!playerFaceitDataPromiseSimpleCache) {
-        playerFaceitDataPromiseSimpleCache = getPlayerFaceitData(playerDetailsPromiseSimpleCache.then(pd => pd?.faceitNickname));
+        playerFaceitDataPromiseSimpleCache = PlayerRepository.getPlayerFaceitData(playerDetailsPromiseSimpleCache.then(pd => pd?.faceitNickname));
+        playerFaceitDataPromiseSimpleCache.then(fd => {
+            if (!fd) {
+                console.info("Cheat detector: No Faceit api data");
+            };
+        });
     }
 
-    const topNHltvPlayersDataPromise = getTopNHltvPlayersData();
-    const skillCalculationsPromise = calculate(playerDataPromiseSimpleCache, topNHltvPlayersDataPromise);
+    const topNHltvPlayersDataPromise = PlayerRepository.getTopNHltvPlayersData();
+    const skillCalculationsPromise = SkillCalculator.comparePlayerToTopNHltvPlayers(playerDataPromiseSimpleCache, topNHltvPlayersDataPromise);
 
     createInterface(playerDataPromiseSimpleCache, skillCalculationsPromise, playerDetailsPromiseSimpleCache, playerFaceitDataPromiseSimpleCache);
 }
 
 async function catchCheater(steam64Id, cheaterPercentage) {
-    if(cheaterPercentage >= 80 && !isBanned()) {
-        getCache('caughtCheaters').then(cc => {
+    if(cheaterPercentage >= 80 && !Checkers.isBanned()) {
+        StorageProvider.get('caughtCheaters').then(cc => {
             if(!cc) {
                 cc = [];
             }
@@ -62,7 +65,7 @@ async function catchCheater(steam64Id, cheaterPercentage) {
                     steam64Id,
                     cheaterPercentage
                 });
-                setCache('caughtCheaters', cc);
+                StorageProvider.set('caughtCheaters', cc);
             }
         });
     }

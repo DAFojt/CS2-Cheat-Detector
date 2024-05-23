@@ -1,5 +1,5 @@
 try {
-    importScripts('cache.js', 'settings.js', 'interfaceTools.js', 'interfaceCheckers.js');
+    importScripts('storageProvider.js', 'settings.js', 'interfaceTools.js', 'interfaceCheckers.js');
   } catch (e) {
 }
 
@@ -107,7 +107,7 @@ async function createInfoTab(player, playerDetailsPromise, playerFaceitDataPromi
     if(!player?.player || player.player.length === 0 || (player.player.highestRanks.matchmaking <= 18 && player.player.currentRanks.matchmaking <= 18 && !player.player.highestRanks.faceit && !player.player.currentRanks.faceit))
         return;
 
-    let {tab, tabContent} = await createTabWithContent('Player info');
+    let {tab, tabContent} = await InterfaceTools.createTabWithContent('Player info');
 
     let faceitDiv = document.createElement('div');
     faceitDiv.className = 'box';
@@ -168,7 +168,7 @@ async function createBannedTeammatesTab(detailsPromise) {
         if(!detailsData || detailsData.bannedTeammates.length === 0)
             return;
 
-        const {tab, tabContent} = await createTabWithContent('Banned teammates', detailsData.bannedTeammates.length);
+        const {tab, tabContent} = await InterfaceTools.createTabWithContent('Banned teammates', detailsData.bannedTeammates.length);
 
         const bannedTeammatesDiv = document.createElement('div');
         bannedTeammatesDiv.className = 'profile_topfriends profile_count_link_preview';
@@ -221,7 +221,7 @@ async function createPlatformBansTab(detailsPromise, playerFaceitDataPromise) {
     if(!detailsData || !detailsData.platformBans || platformBans.length === 0)
         return;
 
-    const {tab, tabContent} = await createTabWithContent('Bans', platformBans.length);
+    const {tab, tabContent} = await InterfaceTools.createTabWithContent('Bans', platformBans.length);
 
     for(const platform of platformBans.filter(x => x !== 'matchmaking')) {
         const row = document.createElement('a');
@@ -249,9 +249,9 @@ async function createSuspiciousTab(player, skillCalculationsPromise, playerFacei
         const extensionSettings = await (new Settings().extensionSettings);
         const matchesCount = skillCalculations.matchesCount;
         const result = skillCalculations.result;
-        const { tab, tabContent } = await createTabWithContent('Suspicious points');
+        const { tab, tabContent } = await InterfaceTools.createTabWithContent('Suspicious points');
         const top10HltvPlayers = extensionSettings.top10hltvPlayers;
-        if (isHltvProPlayer(player) || isFaceitProPlayer(playerFaceitData)) {
+        if (Checkers.isHltvProPlayer(player) || Checkers.isFaceitProPlayer(playerFaceitData)) {
             return;
         }
         else if(matchesCount >= extensionSettings.minMatchesCount) {
@@ -351,9 +351,9 @@ async function createCheaterDiv(player, skillCalculationsPromise, playerFaceitDa
         cheaterDiv.className = 'cheat-detector cheat-percentage-div'
 
         if(matchesCount >= extensionSettings.minMatchesCount) {
-            if (isHltvProPlayer(player)) {
+            if (Checkers.isHltvProPlayer(player)) {
                 cheaterInfoTextElement.textContent = 'HLTV PRO';
-            } else if (isFaceitProPlayer(await playerFaceitDataPromise)) {
+            } else if (Checkers.isFaceitProPlayer(await playerFaceitDataPromise)) {
                 cheaterInfoTextElement.textContent = 'FPL PRO';
             }
             else {
@@ -451,7 +451,7 @@ async function createButtonsDiv(player, playerDetailsPromise, skillCalculationsP
     buttonsDiv.disabled = true;
 
     playerFaceitDataPromise.then(fdp => {
-        if (!isHltvProPlayer(player) && !isFaceitProPlayer(fdp)) {
+        if (!Checkers.isHltvProPlayer(player) && !Checkers.isFaceitProPlayer(fdp)) {
             buttonsDiv.disabled = false;
         }
     })
@@ -468,7 +468,7 @@ function createReportButton(player, skillCalculationsPromise, playerFaceitDataPr
     skillCalculationsPromise.then(async skillCalculations => {
         const suspiciousPoints = skillCalculations.result.getAllSuspiciousPoints();
         const suspiciousBehaviours = [...new Set(suspiciousPoints.filter(sp => 100/sp.all*sp.points >= 80).map(sp => sp.suspiciousBehaviour))];
-        if(suspiciousBehaviours.length === 0 || isUserProfile() || !isLoggedIn() || isHltvProPlayer(player) || isFaceitProPlayer(await playerFaceitDataPromise)) {
+        if(suspiciousBehaviours.length === 0 || Checkers.isUserProfile() || !Checkers.isLoggedIn() || Checkers.isHltvProPlayer(player) || Checkers.isFaceitProPlayer(await playerFaceitDataPromise)) {
             reportButton.disabled = true;
             return;
         }
@@ -514,13 +514,13 @@ function createCommentButton(player, skillCalculationsPromise) {
     skillCalculationsPromise.then(async scp => {
         const extensionSettings = await (new Settings().extensionSettings);
 
-        if(!steamCommentArea || !steamCommentButton || isUserProfile() || !isLoggedIn() || scp.cheaterPercentage < 70 || scp.matchesCount < extensionSettings.minMatchesCount) {
+        if(!steamCommentArea || !steamCommentButton || Checkers.isUserProfile() || !Checkers.isLoggedIn() || scp.cheaterPercentage < 70 || scp.matchesCount < extensionSettings.minMatchesCount) {
             commentButton.disabled = true;
             return;
         }
         const suspiciousPoints = scp.result.getAllSuspiciousPoints().filter(x => x.points > 0);
         let comment = [];
-        const top10HltvPlayers = await getTop10HltvPlayers();
+        const top10HltvPlayers = await PlayerRepository.getDefaultTop10HltvPlayers();
         suspiciousPoints.sort(function(a, b){return b.points - a.points}).forEach(x => {
             comment.push(x.name + ' ' + x.points + ' / ' + x.all + ' (' + x.suspiciousBehaviour + ')');
         })
@@ -543,23 +543,22 @@ function createCommentButton(player, skillCalculationsPromise) {
             } else {
                 steamCommentArea.focus();
                 let delay = 0;
-                delay += addTextFancy(steamCommentArea, 'Cheat detector audit:', delay, 50);
-                newLine(steamCommentArea, delay);
-                delay += addTextFancy(steamCommentArea, 'This account has better statistics than TOP ' + suspiciousPoints[0].all + ' HLTV players in the:', delay, 25);
-                newLine(steamCommentArea, delay);
+                delay += ElementTextTools.addTextFancy(steamCommentArea, 'Cheat detector audit:', delay, 50);
+                ElementTextTools.newLine(steamCommentArea, delay);
+                delay += ElementTextTools.addTextFancy(steamCommentArea, 'This account has better statistics than TOP ' + suspiciousPoints[0].all + ' HLTV players in the:', delay, 25);
+                ElementTextTools.newLine(steamCommentArea, delay);
                 for(let i = 0; i < comment.length; i++) {
-                    newLine(steamCommentArea, delay + 500);
-                    delay += addTextLineAfterDelay(steamCommentArea, comment[i], delay, 500);
+                    ElementTextTools.newLine(steamCommentArea, delay + 500);
+                    delay += ElementTextTools.addTextLineAfterDelay(steamCommentArea, comment[i], delay, 500);
                 }
-                delay += addTextLineAfterDelay(steamCommentArea, betterThan, delay, 500);
-                newLine(steamCommentArea, delay, 2);
-                delay += addTextFancy(steamCommentArea, 'He is '+ scp.cheaterPercentage +'% cheater, checked automatically by CS2 Cheat Detector Chrome extension', delay, 35, 500);
-                newLine(steamCommentArea, delay + 500);
-                delay += addTextLineAfterDelay(steamCommentArea, 'Data source: ' + dataSource + ' matches, demos analyzed: ' + scp.matchesCount, delay, 500);
+                delay += ElementTextTools.addTextLineAfterDelay(steamCommentArea, betterThan, delay, 500);
+                ElementTextTools.newLine(steamCommentArea, delay, 2);
+                delay += ElementTextTools.addTextFancy(steamCommentArea, 'He is '+ scp.cheaterPercentage +'% cheater, checked automatically by CS2 Cheat Detector Chrome extension', delay, 35, 500);
+                ElementTextTools.newLine(steamCommentArea, delay + 500);
+                delay += ElementTextTools.addTextLineAfterDelay(steamCommentArea, 'Data source: ' + dataSource + ' matches, demos analyzed: ' + scp.matchesCount, delay, 500);
                 commentButton.disabled = true;
             }
         }
-        faceitNickname;
     })
     return commentButton;
 }

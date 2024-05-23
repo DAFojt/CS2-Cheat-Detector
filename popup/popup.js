@@ -10,7 +10,7 @@ function run() {
     const settings = new Settings();
     settings.extensionSettings.then(es => {
         initValues(es);
-        getCache('caughtCheaters').then(cc => {
+        StorageProvider.get('caughtCheaters').then(cc => {
             initAchivementsTab(cc, es);
         });
     })
@@ -192,7 +192,7 @@ function top10hltvCustomSaveOnClick() {
             settings.saveSettings();
             error.value = '';
             error.hidden = true;
-            setCache('recalculateData', true);
+            StorageProvider.set('recalculateData', true);
         });
     } catch (e) {
         console.error(e);
@@ -205,70 +205,4 @@ function resetSettingsOnClick() {
     let settings = new Settings();
     settings.resetSettings();
     window.close();
-}
-
-
-
-// to do use dedicated scripts instead of this, after finding a way to do it for a popup in manifest v3
-class Settings {
-    defaultSettings = {
-        showAllSpraysEnabled: false,
-        cheaterPercentageAtTheTopEnabled: true,
-        fancyAnimationsEnabled: true,
-        minMatchesCount: 10,
-        maxMatchesCount: 60,
-        accuracyOverallEnabled: false,
-        showHappyGabenForEachNewObvCheaterEnabled: false,
-    }
-
-    constructor() {
-        this.extensionSettings = getCache('extensionSettings').then(s => s ? s : this.defaultSettings).then(async s => {
-            if (!s.top10hltvPlayers)
-                s.top10hltvPlayers = await getTop10HltvPlayers();
-            return s;
-        });
-    }
-
-    saveSettings() {
-        this.extensionSettings.then(st => {
-            setCache('extensionSettings', st);
-        })
-    }
-
-    resetSettings() {
-        setCache('extensionSettings', this.defaultSettings);
-        setCache('recalculateData', true);
-        console.info('All settings reseted');
-    }
-}
-
-async function getTop10HltvPlayers() {
-    return await fetch(chrome.runtime.getURL('../resources/defaultTop10HltvPlayers.json')).then(response => { return response.json() });
-}
-
-function setCache(key, data) {
-    let obj = {};
-    obj[key] = JSON.stringify(data);
-
-    chrome.storage.local.set(obj)
-        .then(() => console.info("Data " + key + " cached"))
-        .catch(e => console.error("Error while trying to cache data: " + key + " Error: " + e));
-}
-
-async function getCache(key) {
-    return chrome.storage.local.get([key])
-        .then((result) => {
-            if (result[key] === undefined) {
-                return null;
-            } else {
-                return JSON.parse(result[key]);
-            }
-        })
-        .catch(e => console.error("Error while trying to get cache data: " + key + " Error: " + e));;
-}
-
-function removeCache(key) {
-    chrome.storage.local.remove([key])
-        .then(() => console.infp("Data " + key + " removed from cache"))
-        .catch(e => console.error("Error while trying to remove cache data: " + key + " Error: " + e));
 }

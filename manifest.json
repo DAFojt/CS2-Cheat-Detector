@@ -14,7 +14,7 @@
     "content_scripts": [
         {
             "matches": ["https://steamcommunity.com/profiles*", "https://*.steamcommunity.com/id*"],
-            "js": ["content.js", "cache/cache.js", "settings/settings.js", "repository/repository.js", "interface/interface.js", "interface/interfaceTools.js", "interface/interfaceCheckers.js", "calculation/calculator.js", "other/easterEggs.js"],
+            "js": ["content.js", "storage/storageProvider.js", "settings/settings.js", "repository/repository.js", "interface/interface.js", "interface/interfaceTools.js", "interface/interfaceCheckers.js", "calculation/calculator.js", "other/easterEggs.js"],
             "css": ["content.css"],
             "run_at": "document_idle"
         }

@@ -1,12 +1,12 @@
 try {
-    importScripts('cache.js');
+    importScripts('storageProvider.js');
   } catch (e) {
 }
 
 async function nicePokemonEasterEgg() {
-    if(!isBanned()) {
-        const isGabenHappy = await getCache('happyGabenAchivementCompleted');
-        const showHappyGabenForEachNewObvCheaterEnabled = await getCache('showHappyGabenForEachNewObvCheaterEnabled');
+    if(!Checkers.isBanned()) {
+        const isGabenHappy = await StorageProvider.get('happyGabenAchivementCompleted');
+        const showHappyGabenForEachNewObvCheaterEnabled = await StorageProvider.get('showHappyGabenForEachNewObvCheaterEnabled');
         if(!isGabenHappy || showHappyGabenForEachNewObvCheaterEnabled) {
             const happyGaben = document.createElement('img');
             happyGaben.className = 'happy-gaben show-from-bottom';
@@ -16,7 +16,7 @@ async function nicePokemonEasterEgg() {
             setTimeout(() => {
                 gabenPlace.removeChild(happyGaben);
             }, 8000);
-            setCache('happyGabenAchivementCompleted', true);
+            StorageProvider.set('happyGabenAchivementCompleted', true);
         }
     }
 }

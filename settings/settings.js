@@ -1,5 +1,5 @@
 try {
-    importScripts('cache.js');
+    importScripts('storageProvider.js, repository.js');
   } catch (e) {
 }
 
@@ -15,26 +15,22 @@ class Settings {
     }
 
     constructor() {
-        this.extensionSettings = getCache('extensionSettings').then(s => s ? s : this.defaultSettings).then(async s => {
+        this.extensionSettings = StorageProvider.get('extensionSettings').then(s => s ? s : this.defaultSettings).then(async s => {
             if (!s.top10hltvPlayers)
-                s.top10hltvPlayers = await getTop10HltvPlayers();
+                s.top10hltvPlayers = await PlayerRepository.getDefaultTop10HltvPlayers();
             return s;
         });
     }
 
     saveSettings() {
         this.extensionSettings.then(es => {
-            setCache('extensionSettings', es);
+            StorageProvider.set('extensionSettings', es);
         })
     }
 
     resetSettings() {
-        setCache('extensionSettings', this.defaultSettings);
-        setCache('recalculateData', true);
+        StorageProvider.set('extensionSettings', this.defaultSettings);
+        StorageProvider.set('recalculateData', true);
         console.info('All settings reseted');
     }
-}
-
-async function getTop10HltvPlayers() {
-    return await fetch(chrome.runtime.getURL('../resources/defaultTop10HltvPlayers.json')).then(response => { return response.json() });
 }
