@@ -1,42 +1,42 @@
 [
     {
+        "nickname": "donk",
+        "steam64Id": "76561198386265483"
+    },
+    {
         "nickname": "ZywOo",
         "steam64Id": "76561198113666193"
-    },
-    {
-        "nickname": "NiKo",
-        "steam64Id": "76561198041683378"
-    },
-    {
-        "nickname": "ropz",
-        "steam64Id": "76561197991272318"
-    },
-    {
-        "nickname": "m0NESY",
-        "steam64Id": "76561198074762801"
-    },
-    {
-        "nickname": "Spinx",
-        "steam64Id": "76561198063336407"
-    },
-    {
-        "nickname": "s1mple",
-        "steam64Id": "76561198034202275"
-    },
-    {
-        "nickname": "sh1ro",
-        "steam64Id": "76561198081484775"
     },
     {
         "nickname": "XANTARES",
         "steam64Id": "76561198044118796"
     },
     {
-        "nickname": "dev1ce",
-        "steam64Id": "76561197987713664"
+        "nickname": "m0NESY",
+        "steam64Id": "76561198074762801"
     },
     {
         "nickname": "frozen",
         "steam64Id": "76561198068422762"
+    },
+    {
+        "nickname": "NiKo",
+        "steam64Id": "76561197989736583"
+    },
+    {
+        "nickname": "KSCERATO",
+        "steam64Id": "76561198058500492"
+    },
+    {
+        "nickname": "device",
+        "steam64Id": "76561197987713664"
+    },
+    {
+        "nickname": "broky",
+        "steam64Id": "76561198201620490"
+    },
+    {
+        "nickname": "ropz",
+        "steam64Id": "76561197991272318"
     }
 ]

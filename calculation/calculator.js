@@ -23,8 +23,7 @@ class SkillCalculator {
     
     static halfSigmoidFilter(input) {
         let sgmdv = input < 50 ? 1/(1+Math.pow(Math.E, (-(input/10-5)))) * 100 : input;
-        if(sgmdv < 0.02) sgmdv = 0;
-        if(sgmdv === 0.9933071490757153) sgmdv = 1; //max value can be passed to filter, a little bit szpachla
+        if(sgmdv < 2) sgmdv = 0;
         return sgmdv;
     }
     
@@ -49,6 +48,7 @@ class SkillCalculator {
     static async betterThan(player, topNHltvPlayersPromise) {
         const extensionSettings = await new Settings().extensionSettings;
         let matches = player?.games;
+        const allMatchesCount = matches.length;
     
         let playerComparisons = {
             comparisons: [],
@@ -131,7 +131,9 @@ class SkillCalculator {
             const sprayAccuracy = this.toValue(matches.map(g => g.playerStats[0].sprayAccuracy), topNHltvPlayer.games.map(g => g.playerStats[0].sprayAccuracy), true);
             matchesCount = matches.length;
     
-            if(dataSource === 'all' || matchesCount === extensionSettings.maxMatchesCount || matchesCount === extensionSettings.allMatchesCount) {
+
+            const isAllMatches = dataSource === 'all' || matchesCount === allMatchesCount || matchesCount === extensionSettings.allMatchesCount;
+            if(isAllMatches) { // to do dont hide it when calculations are not for all matches, change ui to inform user that this statistic is not included in calculations when calculated matches count is smaller than all matches count(for 0/10 too, for this case it can be strange for user)
                 playerComparison.stats.push({
                     key: "spray_control_overall",
                     name: "Spray control overall",
@@ -143,7 +145,7 @@ class SkillCalculator {
                     hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
                     checkingMethod: "smallerBetter",
                     isPlayerBetter: () => sprayControlOverall[0] < sprayControlOverall[1],
-                    includeInCheaterPercentage: true
+                    includeInCheaterPercentage: isAllMatches
                 });
     
                 playerComparison.stats.push({
@@ -157,11 +159,10 @@ class SkillCalculator {
                     hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
                     checkingMethod: "smallerBetter",
                     isPlayerBetter: () => sprayControlAK[0] < sprayControlAK[1],
-                    includeInCheaterPercentage: true,
+                    includeInCheaterPercentage: isAllMatches,
                     samplesLimit: sprayControlAK[2]
                 });
     
-                let playerComparisonAdditionalStats = [];
                 if(extensionSettings.showAllSpraysEnabled) {
                     let internalOrder = 0;
                     sprayComparisons.filter(x => x.weaponLabel != "AK-47").forEach(spray => {
@@ -182,7 +183,7 @@ class SkillCalculator {
                         internalOrder++;
                     })
                 }
-            }
+            }            
     
             playerComparison.stats.push({
                 key: "spray_accuracy",
