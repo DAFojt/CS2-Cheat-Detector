@@ -11,6 +11,7 @@ class Settings {
         minMatchesCount: 10,
         maxMatchesCount: 60,
         accuracyOverallEnabled: false,
+        minimum10matchesDisabled: false,
         showHappyGabenForEachNewObvCheaterEnabled: false,
     }
 
