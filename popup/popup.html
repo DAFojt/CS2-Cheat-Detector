@@ -6,6 +6,7 @@
     <script src="../storage/storageProvider.js"></script>
     <script src="../repository/repository.js"></script>
     <script src="../settings/settings.js"></script>
+    <script src="popup.js"></script>
 </head>
 <body>
     <img class="main-img" src="../resources/images/main-img.png">
@@ -19,6 +20,8 @@
     <label for="accuracyOverallCheckbox">Enable accuracy overall statistic</label><br>
     <input type="checkbox" id="instantCommentCheckbox" name="instantCommentCheckbox" value="instantCommentCheckbox">
     <label for="instantCommentCheckbox">Instant comment</label><br>
+    <input type="checkbox" id="disableMin10MatchesRestrictCheckbox" name="disableMin10MatchesRestrictCheckbox" value="disableMin10MatchesRestrictCheckbox">
+    <label for="disableMin10MatchesRestrictCheckbox">Disable minimum 10 matches restriction</label><br>
     <div id="hiddenOptions" hidden title="This hidden option is enabled only for players who have caught one or more 100% cheaters">
         <input type="checkbox" id="happyGabenCheckbox" name="happyGabenCheckbox" value="happyGabenCheckbox">
         <label for="happyGabenCheckbox">Show happy Gaben for each new obv</label><br>
@@ -64,8 +67,9 @@
         
     </table>
     </br>
-    <button id="resetSettingsButton">Reset settings</button>
-
-    <script src="popup.js"></script>
+    <div class="box">
+        <label id="saveInfo" hidden>Refresh Steam tabs to apply</label>
+        <button id="resetSettingsButton">Reset settings</button>
+    </div>
 </body>
 </html>

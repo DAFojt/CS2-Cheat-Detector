@@ -4,8 +4,8 @@ class StorageProvider {
         obj[key] = JSON.stringify(data);
     
         chrome.storage.local.set(obj)
-            .then(() => console.info("Data " + key + " cached"))
-            .catch(e => console.error("Error while trying to cache data: " + key + " Error: " + e));
+            .then(() => console.info("Data " + key + " stored"))
+            .catch(e => console.error("Error while trying to store data: " + key + " Error: " + e));
     }
     
     static async get(key) {
@@ -17,12 +17,12 @@ class StorageProvider {
                     return JSON.parse(result[key]);
                 }
             })
-            .catch(e => console.error("Error while trying to get cache data: " + key + " Error: " + e));;
+            .catch(e => console.error("Error while trying to get storage data: " + key + " Error: " + e));;
     }
     
     static remove(key) {
         chrome.storage.local.remove([key])
-            .then(() => console.info("Data " + key + " removed from cache"))
-            .catch(e => console.error("Error while trying to remove cache data: " + key + " Error: " + e));
+            .then(() => console.info("Data " + key + " removed from storage"))
+            .catch(e => console.error("Error while trying to remove storage data: " + key + " Error: " + e));
     }
 }

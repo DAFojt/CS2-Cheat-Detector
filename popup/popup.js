@@ -30,7 +30,7 @@ function initAchivementsTab(cheaters, settings) {
     pc95CheatersTd.textContent = pc95Cheaters?.length ?? 0;
     pc100CheatersTd.textContent = pc100Cheaters?.length ?? 0;
 
-    statsTable.title = 'Steam ids:\n80%-99%:\n' + (pc80Cheaters?.length > 0 ? pc80Cheaters.map(c => c.steam64Id).join('\n') : '-') + '\n100%:\n' + (pc100Cheaters?.length > 0 ? pc100Cheaters.map(c => c.steam64Id).join('\n') : '-');
+    statsTable.title = 'Steam ids:\n80%-94%:\n' + (pc80Cheaters?.length > 0 ? pc80Cheaters.map(c => c.steam64Id).join('\n') : '-') + '\n95-99%:\n' + (pc95Cheaters?.length > 0 ? pc95Cheaters.map(c => c.steam64Id).join('\n') : '-') + '\n100%:\n' + (pc100Cheaters?.length > 0 ? pc100Cheaters.map(c => c.steam64Id).join('\n') : '-');
     if ((pc100Cheaters?.length ?? 0) > 0)
         document.getElementById('hiddenOptions').hidden = false;
 
@@ -77,6 +77,7 @@ function initValues(es) {
     document.getElementById("top10hltvCustomCheckbox").checked = es.top10hltvCustomEnabled;
     document.getElementById("accuracyOverallCheckbox").checked = es.accuracyOverallEnabled;
     document.getElementById("instantCommentCheckbox").checked = es.instantCommentEnabled;
+    document.getElementById("disableMin10MatchesRestrictCheckbox").checked = es.minimum10matchesDisabled;
     document.getElementById("happyGabenCheckbox").checked = es.showHappyGabenForEachNewObvCheaterEnabled;
     //document.getElementById("suspiciousPointsCustomOrderEditable").hidden = !es.suspiciousPointsCustomOrderEnabled;
     document.getElementById("top10hltvCustomEditable").hidden = !es.top10hltvCustomEnabled;
@@ -91,6 +92,7 @@ function addEventListeners() {
     document.getElementById("top10hltvCustomCheckbox").addEventListener("click", top10hltvCustomChanged);
     document.getElementById("accuracyOverallCheckbox").addEventListener("click", accuracyOverallChanged);
     document.getElementById("instantCommentCheckbox").addEventListener("click", instantCommentChanged);
+    document.getElementById("disableMin10MatchesRestrictCheckbox").addEventListener("click", min10MatchesRestrict);
     document.getElementById("happyGabenCheckbox").addEventListener("click", happyGabenChanged);
     //document.getElementById("suspiciousPointsCustomOrderSaveButton").addEventListener("click", suspiciousPointsCustomOrderSaveOnClick);
     document.getElementById("top10hltvCustomSaveButton").addEventListener("click", top10hltvCustomSaveOnClick);
@@ -103,6 +105,7 @@ async function showAllSpraysChanged() {
     settings.extensionSettings.then((st) => {
         st.showAllSpraysEnabled = v;
         settings.saveSettings();
+        showConfirmationText();
     });
 }
 
@@ -112,6 +115,7 @@ function cheaterPercentageAtTheTopChanged() {
     settings.extensionSettings.then((st) => {
         st.cheaterPercentageAtTheTopEnabled = v;
         settings.saveSettings();
+        showConfirmationText();
     });
 }
 
@@ -121,6 +125,7 @@ function fancyAnimationsChanged() {
     settings.extensionSettings.then((st) => {
         st.fancyAnimationsEnabled = v;
         settings.saveSettings();
+        showConfirmationText();
     });
 }
 
@@ -130,6 +135,7 @@ function accuracyOverallChanged() {
     settings.extensionSettings.then((st) => {
         st.accuracyOverallEnabled = v;
         settings.saveSettings();
+        showConfirmationText();
     });
 }
 
@@ -140,6 +146,7 @@ function suspiciousPointsCustomOrderChanged() {
     settings.extensionSettings.then((st) => {
         st.suspiciousPointsCustomOrderEnabled = v;
         settings.saveSettings();
+        showConfirmationText();
     });
 }
 
@@ -150,6 +157,7 @@ function top10hltvCustomChanged() {
     settings.extensionSettings.then((st) => {
         st.top10hltvCustomEnabled = v;
         settings.saveSettings();
+        showConfirmationText();
     });
 }
 
@@ -159,6 +167,17 @@ function instantCommentChanged() {
     settings.extensionSettings.then((st) => {
         st.instantCommentEnabled = v;
         settings.saveSettings();
+        showConfirmationText();
+    });
+}
+
+function min10MatchesRestrict() {
+    let v = document.getElementById("disableMin10MatchesRestrictCheckbox").checked;
+    let settings = new Settings();
+    settings.extensionSettings.then((st) => {
+        st.minimum10matchesDisabled = v;
+        settings.saveSettings();
+        showConfirmationText();
     });
 }
 
@@ -168,6 +187,7 @@ function happyGabenChanged() {
     settings.extensionSettings.then((st) => {
         st.showHappyGabenForEachNewObvCheaterEnabled = v;
         settings.saveSettings();
+        showConfirmationText();
     });
 }
 function suspiciousPointsCustomOrderSaveOnClick() {
@@ -205,4 +225,8 @@ function resetSettingsOnClick() {
     let settings = new Settings();
     settings.resetSettings();
     window.close();
+}
+
+function showConfirmationText() {
+    document.getElementById('saveInfo').hidden = false;
 }

@@ -23,3 +23,11 @@ table, th, td {
 .main-img {
     object-fit: fill;
 }
+
+.box {
+    display: flex;
+    flex-wrap: wrap;
+}
+.box>* {
+    flex: 1 1 160px;
+}
