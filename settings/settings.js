@@ -10,8 +10,8 @@ class Settings {
         fancyAnimationsEnabled: true,
         minMatchesCount: 10,
         maxMatchesCount: 60,
+        min10matchesDisabled: false,
         accuracyOverallEnabled: false,
-        minimum10matchesDisabled: false,
         showHappyGabenForEachNewObvCheaterEnabled: false,
     }
 

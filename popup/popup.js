@@ -77,7 +77,7 @@ function initValues(es) {
     document.getElementById("top10hltvCustomCheckbox").checked = es.top10hltvCustomEnabled;
     document.getElementById("accuracyOverallCheckbox").checked = es.accuracyOverallEnabled;
     document.getElementById("instantCommentCheckbox").checked = es.instantCommentEnabled;
-    document.getElementById("disableMin10MatchesRestrictCheckbox").checked = es.minimum10matchesDisabled;
+    document.getElementById("disableMin10MatchesRestrictCheckbox").checked = es.min10matchesDisabled;
     document.getElementById("happyGabenCheckbox").checked = es.showHappyGabenForEachNewObvCheaterEnabled;
     //document.getElementById("suspiciousPointsCustomOrderEditable").hidden = !es.suspiciousPointsCustomOrderEnabled;
     document.getElementById("top10hltvCustomEditable").hidden = !es.top10hltvCustomEnabled;
@@ -175,7 +175,8 @@ function min10MatchesRestrict() {
     let v = document.getElementById("disableMin10MatchesRestrictCheckbox").checked;
     let settings = new Settings();
     settings.extensionSettings.then((st) => {
-        st.minimum10matchesDisabled = v;
+        st.min10matchesDisabled = v;
+        st.minMatchesCount = v ? 1 : 10;
         settings.saveSettings();
         showConfirmationText();
     });

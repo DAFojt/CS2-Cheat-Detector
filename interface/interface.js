@@ -254,7 +254,7 @@ async function createSuspiciousTab(player, skillCalculationsPromise, playerFacei
         if (Checkers.isHltvProPlayer(player) || Checkers.isFaceitProPlayer(playerFaceitData)) {
             return;
         }
-        else if(matchesCount >= extensionSettings.minMatchesCount || (extensionSettings.minimum10matchesDisabled && matchesCount > 0)) {
+        else if(matchesCount >= extensionSettings.minMatchesCount) {
             result.avaiableStats().forEach(statistic => {
                 const suspiciousPoints = skillCalculations.result.getSuspiciousPointsByKey(statistic.key);
                 const innerDiv =  document.createElement('div');
@@ -350,7 +350,7 @@ async function createCheaterDiv(player, skillCalculationsPromise, playerFaceitDa
         let cheaterDiv = document.createElement('div');
         cheaterDiv.className = 'cheat-detector cheat-percentage-div'
 
-        if(matchesCount >= extensionSettings.minMatchesCount || (extensionSettings.minimum10matchesDisabled && matchesCount > 0)) {
+        if(matchesCount >= extensionSettings.minMatchesCount) {
             if (Checkers.isHltvProPlayer(player)) {
                 cheaterInfoTextElement.textContent = 'HLTV PRO';
             } else if (Checkers.isFaceitProPlayer(await playerFaceitDataPromise)) {
@@ -589,7 +589,7 @@ function createSwitchButton(requestedDataSource, matchesCount) {
     sourceButton.classList.add('superfluousButton');
 
     (new Settings().extensionSettings).then(extensionSettings => {
-        if(matchesCount >= extensionSettings.minMatchesCount || (extensionSettings.minimum10matchesDisabled && matchesCount === 0)){ 
+        if(matchesCount >= extensionSettings.minMatchesCount){ 
             sourceButton.classList.remove('superfluousButton');
         }
     });
