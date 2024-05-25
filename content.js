@@ -5,7 +5,9 @@ try {
 
 //very crazy fix, without it the scripts won't load, some chrome bug? or am I an idiot?
 setTimeout(() => {
-    run();
+    if(isValidUrl()) {
+        run();
+    }
 }, 0)
 
 
@@ -49,24 +51,34 @@ function run() {
 
 async function catchCheater(steam64Id, cheaterPercentage) {
     if(cheaterPercentage >= 80 && !Checkers.isBanned()) {
-        StorageProvider.get('caughtCheaters').then(cc => {
-            if(!cc) {
-                cc = [];
+        StorageProvider.get('caughtCheaters').then(caughtCheaters => {
+            if(!caughtCheaters) {
+                caughtCheaters = [];
             }
-            const cheater = cc.find(c => c.steam64Id === steam64Id);
+            const cheater = caughtCheaters.find(c => c.steam64Id === steam64Id);
             let rewrite = false;
             if(!!cheater && cheater.cheaterPercentage < cheaterPercentage) {
-                const index = cc.indexOf(cheater);
-                cc.splice(index, 1);
+                const index = caughtCheaters.indexOf(cheater);
+                caughtCheaters.splice(index, 1);
                 rewrite = true;
             }
             if(!cheater || rewrite) {
-                cc.push({
+                caughtCheaters.push({
                     steam64Id,
                     cheaterPercentage
                 });
-                StorageProvider.set('caughtCheaters', cc);
+                StorageProvider.set('caughtCheaters', caughtCheaters);
             }
         });
     }
+}
+
+//additional validation to manifest v3 matches
+function isValidUrl() {
+    const url = window.location.toString().split('/');
+    const validUrl = url.length < 6 || url.length === 6 && url[5] === ''; 
+    if(!validUrl) {
+        console.info('Cheat detector: Not valid URL');
+    }
+    return validUrl;
 }

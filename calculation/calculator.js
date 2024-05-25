@@ -116,11 +116,11 @@ class SkillCalculator {
             const sprayControlAK = [sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').playerError, sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').topNHltvPlayerError, sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').coordsLimit];
     
     
-            if (dataSource !== 'all' && dataSource !== 'premier+wgm') {
+            if (dataSource !== 'all' && dataSource !== 'premierwgm') {
                 let src = (dataSource === 'premier' ? 'matchmaking' : dataSource);
                     src = (dataSource === 'wingman' ? 'matchmaking_wingman' : src);
                 matches = matches.filter(m => m.dataSource === src);
-            } else if (dataSource === 'premier+wgm') {
+            } else if (dataSource === 'premierwgm') {
                 matches = matches.filter(m => m.dataSource === 'matchmaking' || m.dataSource === 'matchmaking_wingman');
             }
             const reactionTimes = this.toMs(matches.map(g => g.playerStats[0].reactionTime), topNHltvPlayer.games.map(g => g.playerStats[0].reactionTime));

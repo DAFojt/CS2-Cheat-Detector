@@ -278,17 +278,17 @@ async function createSuspiciousTab(player, skillCalculationsPromise, playerFacei
 
                         if(includeInCheaterPercentage) {
                             if(percentage === 0)
-                                innerPb.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgb(0 200 0) 80%)';
+                                innerPb.style.background = 'linear-gradient(180deg, rgba(240, 240, 240, .3) 0%, rgb(0 180 0) 80%)';
                             else if(percentage === 41)
-                                innerPb.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgb(200 200 0) 80%)';
+                                innerPb.style.background = 'linear-gradient(180deg, rgba(240, 240, 240, .3) 0%, rgb(180 180 0) 80%)';
                             else if(percentage === 71)
-                                innerPb.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgb(200 0 0) 80%)';
+                                innerPb.style.background = 'linear-gradient(180deg, rgba(240, 240, 240, .3) 0%, rgb(180 0 0) 80%)';
 
                             if(percentage === 100 && extensionSettings.fancyAnimationsEnabled) {
                                 innerAPb.classList.toggle('strong-shake');
                             }
                         } else {
-                            innerPb.style.background = 'linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgb(0 0 120) 80%)';
+                            innerPb.style.background = 'linear-gradient(180deg, rgba(240, 240, 240, .3) 0%, rgb(0 0 120) 80%)';
                         }
                 }
 
@@ -429,7 +429,7 @@ async function createButtonsDiv(player, playerDetailsPromise, skillCalculationsP
     buttonsRow.appendChild(faceitButton);
     const wingmanButton = createSwitchButton('Wingman', player.games.filter(g => g.dataSource === 'matchmaking_wingman').length);
     buttonsRow.appendChild(wingmanButton);
-    const premierWgmButton = createSwitchButton('Premier+Wgm', player.games.filter(g => g.dataSource === 'matchmaking').length + player.games.filter(g => g.dataSource === 'matchmaking_wingman').length);
+    const premierWgmButton = createSwitchButton('PremierWgm', player.games.filter(g => g.dataSource === 'matchmaking').length + player.games.filter(g => g.dataSource === 'matchmaking_wingman').length);
     buttonsRow.appendChild(premierWgmButton);
     buttonsDiv.appendChild(buttonsRow);
 
@@ -461,8 +461,8 @@ async function createButtonsDiv(player, playerDetailsPromise, skillCalculationsP
 
 function createReportButton(player, skillCalculationsPromise, playerFaceitDataPromise) {
     const reportButton = document.createElement('button');
-    reportButton.innerText = 'Steam report';
-    reportButton.className = 'btn_green_white_innerfade btn_large';
+    reportButton.textContent = 'Report';
+    reportButton.className = 'btn_profile_action btn_medium';
     reportButton.disabled = true;
 
     skillCalculationsPromise.then(async skillCalculations => {
@@ -506,8 +506,8 @@ function createReportButton(player, skillCalculationsPromise, playerFaceitDataPr
 function createCommentButton(player, skillCalculationsPromise) {
     const commentButton = document.createElement('button');
     commentButton.disabled = true;
-    commentButton.innerText = 'Add comment';
-    commentButton.className = 'btn_green_white_innerfade btn_large';
+    commentButton.textContent = 'Add comment';
+    commentButton.className = 'btn_profile_action btn_medium';
     const steamCommentArea = document.getElementsByClassName('commentthread_textarea')[0];
     const steamCommentButton = document.getElementById('commentthread_Profile_'+player.player.steam64Id+'_submit');
 
@@ -567,8 +567,8 @@ function createLeetifyButton(player, playerDetailsPromise) {
     const leetifyAnchor = document.createElement('a');
     leetifyAnchor.href = 'https://leetify.com/app/profile/' + player.player.steam64Id
     const leetifyButton = document.createElement('button');
-    leetifyButton.innerText = '  Leetify profile  ';
-    leetifyButton.className = 'btn_green_white_innerfade btn_large';
+    leetifyButton.textContent = '  Leetify profile';
+    leetifyButton.className = 'btn_profile_action btn_medium';
     leetifyButton.disabled = true;
 
     leetifyAnchor.appendChild(leetifyButton);
@@ -583,9 +583,9 @@ function createLeetifyButton(player, playerDetailsPromise) {
 
 function createSwitchButton(requestedDataSource, matchesCount) {
     const sourceButton = document.createElement('button');
-    sourceButton.innerText = requestedDataSource;
-    sourceButton.classList.add('btn_green_white_innerfade');
-    sourceButton.classList.add('btn_large');
+    sourceButton.textContent = requestedDataSource;
+    sourceButton.classList.add('btn_profile_action');
+    sourceButton.classList.add('btn_medium');
     sourceButton.classList.add('superfluousButton');
 
     (new Settings().extensionSettings).then(extensionSettings => {

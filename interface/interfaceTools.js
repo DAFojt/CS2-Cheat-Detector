@@ -8,12 +8,15 @@ class InterfaceTools{
         const className = tabName.replaceAll(' ', '-').toLowerCase();
         const tab = document.createElement('div');
         tab.className = ('cheat-detector ' + className);
+        tab.classList.add('cheat-detector-tab');
     
         const tabContent = document.createElement('div');
         tabContent.className = (className + '-content');
+        tabContent.style.padding = '1px 5px';
         
         const tittleBox = document.createElement('div');
         tittleBox.className = 'box';
+        tittleBox.classList.add('tab-tittle-box')
     
         const h3 = document.createElement('h3');
         h3.textContent = notificationsCount > 0 ? `${tabName} (${notificationsCount})` : tabName;
