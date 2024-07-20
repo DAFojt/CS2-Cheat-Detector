@@ -104,17 +104,23 @@ function removeOldMainDiv() {
 }
 
 async function createInfoTab(player, playerDetailsPromise, playerFaceitDataPromise) {
-    if(!player?.player || player.player.length === 0 || (player.player.highestRanks.matchmaking <= 18 && player.player.currentRanks.matchmaking <= 18 && !player.player.highestRanks.faceit && !player.player.currentRanks.faceit))
+    if(!player?.games?.length || player.games.length === 0)
         return;
 
     let {tab, tabContent} = await InterfaceTools.createTabWithContent('Player info');
+    
 
     let faceitDiv = document.createElement('div');
     faceitDiv.className = 'box';
     let text = document.createElement('p');
-    text.textContent = 'Faceit highest rank: ' + (player.player.highestRanks.faceit ? '' : '-');
+    text.textContent = 'Faceit highest rank: ';
     faceitDiv.appendChild(text);
-    if(player.player.highestRanks.faceit && player.player.highestRanks.faceit > 0) {
+    if(!player.player.highestRanks.faceit) {
+        let emptyText = document.createElement('p');
+        emptyText.textContent = '-';
+        emptyText.style.maxWidth = '15%';
+        faceitDiv.appendChild(emptyText);
+    } else {
         const faceitImg = document.createElement('img');
         faceitImg.src = chrome.runtime.getURL('../resources/images/faceit/faceit' + player.player.highestRanks.faceit + '.svg');
         faceitImg.style.maxWidth = '10%';
@@ -137,9 +143,14 @@ async function createInfoTab(player, playerDetailsPromise, playerFaceitDataPromi
     faceitDiv = document.createElement('div');
     faceitDiv.className = 'box';
     const inneriP = document.createElement('p');
-    inneriP.textContent = 'Faceit current rank: ' + (player.player.currentRanks.faceit ? '' : '-');
+    inneriP.textContent = 'Faceit current rank: ';
     faceitDiv.appendChild(inneriP);
-    if(player.player.highestRanks.faceit && player.player.currentRanks.faceit > 0) {
+    if(!player.player.currentRanks.faceit) {
+        let emptyText = document.createElement('p');
+        emptyText.textContent = '-';
+        emptyText.style.maxWidth = '15%';
+        faceitDiv.appendChild(emptyText);
+    } else {
         let faceitImg = document.createElement('img');
         faceitImg.src = chrome.runtime.getURL('../resources/images/faceit/faceit' + player.player.currentRanks.faceit + '.svg');
         faceitImg.style.maxWidth = '10%';
@@ -159,6 +170,33 @@ async function createInfoTab(player, playerDetailsPromise, playerFaceitDataPromi
     premierDiv.appendChild(text);
     tabContent.appendChild(premierDiv);
     tab.appendChild(tabContent);
+
+    playerDetailsPromise.then(pd => {
+        premierDiv = document.createElement('div');
+        premierDiv.className = 'box';
+        text = document.createElement('p');
+        text.textContent = 'CS2 registered matches:';
+        premierDiv.appendChild(text);
+        text = document.createElement('p');
+        text.textContent = pd.cs2MatchesCount;
+        text.style.maxWidth = '15%';
+        premierDiv.appendChild(text);
+        tabContent.appendChild(premierDiv);
+        tab.appendChild(tabContent);
+
+        premierDiv = document.createElement('div');
+        premierDiv.className = 'box';
+        text = document.createElement('p');
+        text.textContent = 'CSGO registered matches:';
+        premierDiv.appendChild(text);
+        text = document.createElement('p');
+        text.textContent = pd.csgoMatchesCount;
+        text.style.maxWidth = '15%';
+        premierDiv.appendChild(text);
+        tabContent.appendChild(premierDiv);
+        tab.appendChild(tabContent);
+    });
+    
 
     return tab;
 }
@@ -328,7 +366,7 @@ async function createSuspiciousTab(player, skillCalculationsPromise, playerFacei
                 tabContent.appendChild(innerDiv);
             })
             const innerP = document.createElement('p');
-            innerP.textContent = 'Source data: ' + dataSource + ', Matches: ' + matchesCount;
+            innerP.textContent = 'Source data: ' + dataSource.replace('premierwgm', 'Premier&Wgm') + ', Matches: ' + matchesCount;
             innerP.style.textAlign = 'center';
             tabContent.appendChild(innerP);
             return tab;
@@ -537,7 +575,7 @@ function createCommentButton(player, skillCalculationsPromise) {
                 steamCommentArea.value += comment.join('\n');
                 steamCommentArea.value += betterThan + '\n\n';
                 steamCommentArea.value += 'He is '+ scp.cheaterPercentage +'% cheater, checked automatically by CS2 Cheat Detector Chrome extension\n';
-                steamCommentArea.value += 'Data source: ' + dataSource + ' matches, demos analyzed: ' + scp.matchesCount;
+                steamCommentArea.value += 'Data source: ' + dataSource.replace('premierwgm', 'Premier & Wingman') + ' matches, demos analyzed: ' + scp.matchesCount;
                 steamCommentButton.click();
                 commentButton.disabled = true;
             } else {
@@ -555,7 +593,7 @@ function createCommentButton(player, skillCalculationsPromise) {
                 ElementTextTools.newLine(steamCommentArea, delay, 2);
                 delay += ElementTextTools.addTextFancy(steamCommentArea, 'He is '+ scp.cheaterPercentage +'% cheater, checked automatically by CS2 Cheat Detector Chrome extension', delay, 35, 500);
                 ElementTextTools.newLine(steamCommentArea, delay + 500);
-                delay += ElementTextTools.addTextLineAfterDelay(steamCommentArea, 'Data source: ' + dataSource + ' matches, demos analyzed: ' + scp.matchesCount, delay, 500);
+                delay += ElementTextTools.addTextLineAfterDelay(steamCommentArea, 'Data source: ' + dataSource.replace('premierwgm', 'Premier & Wingman') + ' matches, demos analyzed: ' + scp.matchesCount, delay, 500);
                 commentButton.disabled = true;
             }
         }

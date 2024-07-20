@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "Cheat detector",
-    "version": "0.1.0",
-    "description": "Cheat detector is ready.",
+    "version": "1.0.0",
+    "description": "Let's find out if he's cheating...",
     "action": {
         "default_popup": "popup/popup.html",
         "default_icon": {
@@ -32,12 +32,9 @@
         }
     ],
     "permissions": [
-        "tabs",
-        "storage",
-        "webNavigation"
+        "storage"
     ],
     "host_permissions": [
-        "https://api.leetify.com/api/*",
         "https://www.faceit.com/api/users/v1/*"
     ]
 }

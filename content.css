@@ -168,7 +168,7 @@ h3 {
 
 .superfluousButton {
     color: #8c9b57 !important;
-    background: linear-gradient(to bottom, #575757d0 5%, #575757d0 95%) !important;
+    background-color: color-mix(in srgb, var(--color-showcase-header), #4b4b4b24) !important;
 }
 
 .happy-gaben {

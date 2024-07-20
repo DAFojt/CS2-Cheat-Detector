@@ -27,7 +27,8 @@ class PlayerRepository {
                 platformBans: pd.meta.platformBans,
                 faceitNickname: pd.meta.faceitNickname,
                 esportalNickname: pd.meta.esportalNickname,
-                // matchesPlayed: pd.lifetimeStats.matchesPlayed
+                cs2MatchesCount: pd.games.filter(g => g.isCs2).length,
+                csgoMatchesCount: pd.games.filter(g => !g.isCs2).length
             } : null});
     }
     

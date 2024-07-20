@@ -139,7 +139,7 @@ class SkillCalculator {
                     name: "Spray control overall",
                     unit: "*",
                     order: 0,
-                    suspiciousBehaviour: "Norecoil",
+                    suspiciousBehaviour: "Nospray",
                     playerValue: sprayControlOverall[0],
                     topNHltvPlayerValue: sprayControlOverall[1],
                     hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
@@ -153,7 +153,7 @@ class SkillCalculator {
                     name: "Spray control AK-47",
                     unit: "*",
                     order: 1,
-                    suspiciousBehaviour: "Norecoil",
+                    suspiciousBehaviour: "Nospray",
                     playerValue: sprayControlAK[0],
                     topNHltvPlayerValue: sprayControlAK[1],
                     hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
@@ -171,7 +171,7 @@ class SkillCalculator {
                             name: "Spray control " + spray.weaponLabel,
                             unit: "*",
                             order: 2 + ([...spray.weaponLabel].map(char => char.charCodeAt(0)).reduce((accumulator, currentValue) => accumulator + currentValue, 0) / 10000),
-                            suspiciousBehaviour: "Norecoil",
+                            suspiciousBehaviour: "Nospray",
                             playerValue: spray.playerError,
                             topNHltvPlayerValue: spray.topNHltvPlayerError,
                             hltvPlayerSteam64Id: topNHltvPlayer.player.steam64Id,
@@ -278,16 +278,20 @@ class SkillCalculator {
     }
     
     static toMs(playerValueData, hltvPlayerValueData) {
-        const playerValue = Math.round(playerValueData.reduce((a, b) => a + b, 0) / playerValueData.length * 1000);
-        const hltvPlayerValue = Math.round(hltvPlayerValueData.reduce((a, b) => a + b, 0) / hltvPlayerValueData.length * 1000);
+        const playerValue = Math.round(this.avg(playerValueData) * 1000);
+        const hltvPlayerValue = Math.round(this.avg(hltvPlayerValueData) * 1000);
     
         return [playerValue, hltvPlayerValue];
     }
     
     static toValue(playerValueData, hltvPlayerValueData, percent = false) {
-        const playerValue = Math.round(playerValueData.reduce((a, b) => a + b, 0) / playerValueData.length * (percent ? 100 : 1) * 100) / 100;
-        const hltvPlayerValue = Math.round(hltvPlayerValueData.reduce((a, b) => a + b, 0) / hltvPlayerValueData.length * (percent ? 100 : 1) * 100) / 100;
+        const playerValue = Math.round(this.avg(playerValueData) * (percent ? 100 : 1) * 100) / 100;
+        const hltvPlayerValue = Math.round(this.avg(hltvPlayerValueData) * (percent ? 100 : 1) * 100) / 100;
     
         return [playerValue, hltvPlayerValue];
+    }
+
+    static avg(array) {
+        return array.reduce((a, b) => a + b, 0) / array.length;
     }
 }
