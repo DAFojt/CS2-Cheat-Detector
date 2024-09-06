@@ -73,7 +73,7 @@ class SkillCalculator {
             getEnemysSteamId64FromStatByKeyWherePlayerIsBetter: (key) => playerComparisons.getStatsByKey(key).filter(s => s.isPlayerBetter()).map(s => s.hltvPlayerSteam64Id),
             getEnemysSteamId64FromStatByKeyWherePlayerIsWorse: (key) => playerComparisons.getStatsByKey(key).filter(s => !s.isPlayerBetter()).map(s => s.hltvPlayerSteam64Id),
             getAllSuspiciousPoints: () => playerComparisons.avaiableStats().filter(av => av.includeInCheaterPercentage).map(av => playerComparisons.getSuspiciousPointsByKey(av.key)),
-            getSuspiciousPointsByKey: (key) => { return {points: playerComparisons.getStatsByKeyWherePlayerIsBetterLength(key), all: playerComparisons.getStatsByKeyLength(key), name: playerComparisons.getStatNameByKey(key), suspiciousBehaviour: playerComparisons.getStatSuspiciousBehaviourByKey(key)} },
+            getSuspiciousPointsByKey: (key) => { return {key, points: playerComparisons.getStatsByKeyWherePlayerIsBetterLength(key), all: playerComparisons.getStatsByKeyLength(key), name: playerComparisons.getStatNameByKey(key), suspiciousBehaviour: playerComparisons.getStatSuspiciousBehaviourByKey(key)} },
         };
     
     
@@ -114,8 +114,7 @@ class SkillCalculator {
             const weaponsList = ['AK-47', 'M4A4', 'M4A1-S', 'M4A4', 'FAMAS', 'Galil AR'];
             const sprayControlOverall = this.toValue(sprayComparisons.filter(sc => weaponsList.includes(sc.weaponLabel)).map(sc => sc.playerError), sprayComparisons.filter(sc => weaponsList.includes(sc.weaponLabel)).map(sc => sc.topNHltvPlayerError), false);
             const sprayControlAK = [sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').playerError, sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').topNHltvPlayerError, sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').coordsLimit];
-    
-    
+        
             if (dataSource !== 'all' && dataSource !== 'premierwgm') {
                 let src = (dataSource === 'premier' ? 'matchmaking' : dataSource);
                     src = (dataSource === 'wingman' ? 'matchmaking_wingman' : src);
@@ -133,7 +132,7 @@ class SkillCalculator {
     
 
             const isAllMatches = dataSource === 'all' || matchesCount === allMatchesCount || matchesCount === extensionSettings.allMatchesCount;
-            if(isAllMatches) { // to do dont hide it when calculations are not for all matches, change ui to inform user that this statistic is not included in calculations when calculated matches count is smaller than all matches count(for 0/10 too, for this case it can be strange for user)
+            if(isAllMatches) {
                 playerComparison.stats.push({
                     key: "spray_control_overall",
                     name: "Spray control overall",

@@ -11,7 +11,7 @@ async function nicePokemonEasterEgg() {
             const happyGaben = document.createElement('img');
             happyGaben.className = 'happy-gaben show-from-bottom';
             happyGaben.src = chrome.runtime.getURL('../resources/images/eggs/gaben.png');
-            const gabenPlace = document.getElementsByClassName('flat_page profile_page has_profile_background MidnightTheme responsive_page')[0];
+            const gabenPlace = document.getElementsByClassName('flat_page profile_page')[0];
             gabenPlace.prepend(happyGaben);
             setTimeout(() => {
                 gabenPlace.removeChild(happyGaben);

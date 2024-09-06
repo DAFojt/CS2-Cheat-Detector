@@ -49,7 +49,7 @@ function run() {
     createInterface(playerDataPromiseSimpleCache, skillCalculationsPromise, playerDetailsPromiseSimpleCache, playerFaceitDataPromiseSimpleCache);
 }
 
-async function catchCheater(steam64Id, cheaterPercentage) {
+async function catchCheater(steam64Id, suspiciousPoints, cheaterPercentage) {
     if(cheaterPercentage >= 80 && !Checkers.isBanned()) {
         StorageProvider.get('caughtCheaters').then(caughtCheaters => {
             if(!caughtCheaters) {
@@ -65,7 +65,9 @@ async function catchCheater(steam64Id, cheaterPercentage) {
             if(!cheater || rewrite) {
                 caughtCheaters.push({
                     steam64Id,
-                    cheaterPercentage
+                    cheaterPercentage,
+                    suspiciousPoints: suspiciousPoints.map(x => {x.points, x.all, x.name}),
+                    date: new Date()
                 });
                 StorageProvider.set('caughtCheaters', caughtCheaters);
             }

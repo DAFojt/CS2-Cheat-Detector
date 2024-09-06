@@ -178,7 +178,7 @@ async function createInfoTab(player, playerDetailsPromise, playerFaceitDataPromi
         text.textContent = 'CS2 registered matches:';
         premierDiv.appendChild(text);
         text = document.createElement('p');
-        text.textContent = pd.cs2MatchesCount;
+        text.textContent = pd?.cs2MatchesCount;
         text.style.maxWidth = '15%';
         premierDiv.appendChild(text);
         tabContent.appendChild(premierDiv);
@@ -190,7 +190,7 @@ async function createInfoTab(player, playerDetailsPromise, playerFaceitDataPromi
         text.textContent = 'CSGO registered matches:';
         premierDiv.appendChild(text);
         text = document.createElement('p');
-        text.textContent = pd.csgoMatchesCount;
+        text.textContent = pd?.csgoMatchesCount;
         text.style.maxWidth = '15%';
         premierDiv.appendChild(text);
         tabContent.appendChild(premierDiv);
@@ -435,7 +435,7 @@ async function createCheaterDiv(player, skillCalculationsPromise, playerFaceitDa
                 else {
                     setCheaterPercentage(cheaterPercentage);
                 }
-                catchCheater(player.player.steam64Id, cheaterPercentage);
+                catchCheater(player.player.steam64Id, skillCalculations.result.getAllSuspiciousPoints(), cheaterPercentage);
             }
             cheaterDiv.appendChild(cheaterInfoTextElement);
             cheaterDiv.title = 'Algorithm:\nTake the top half of the statistics\nCalculate the average score\nPass through a sigmoid filter'

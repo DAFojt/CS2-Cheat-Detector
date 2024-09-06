@@ -5,18 +5,18 @@ try {
 
 class PlayerRepository {
     static async getPlayerData(id) {
-        return fetch(`https://api.leetify.com/api/compare?friendName=${id}&period=2`).then(res => res.ok ? res.json() : null).then(x => {x.games = x?.games.filter(x => x.isCs2); return x;}).catch(err => { console.info(err); return null; }).finally(() => console.info('Player data API called'));
+        return fetch(`https://api.leetify.com/api/compare?friendName=${id}&period=2`).then(res => res.ok ? res.json() : null).then(x => {x.games = x?.games.filter(x => x.isCs2); return x;}).catch(err => { console.info('getPlayerData ERROR', err); return null; }).finally(() => console.info('Player data API called'));
     }
     
     static async getPlayerDetailsData(idPromise) {
-        const id = await idPromise;;
-        return fetch(`https://api.leetify.com/api/profile/${id}`).then(res => res.ok ? this.parsePlayerDetails(res.json()) : null).catch(err => { console.info(err); return null; }).finally(() => console.info('Player details API called'));
+        const id = await idPromise;
+        return fetch(`https://api.leetify.com/api/profile/${id}`).then(res => res.ok ? this.parsePlayerDetails(res.json()) : null).catch(err => { console.info('getPlayerDetails ERROR', err); return null; }).finally(() => console.info('Player details API called'));
     }
     
     static async parsePlayerDetails(playerDetailsPromise) {
         return playerDetailsPromise.then(pd => {
             return pd ? {
-                bannedTeammates: pd.teammates.filter(x => x.isBanned).map(x => {
+                bannedTeammates: pd.teammates === false ? [] : pd.teammates.filter(x => x.isBanned).map(x => {
                     return {
                         steam64Id: x.steam64Id,
                         steamNickname: x.steamNickname,
