@@ -47,7 +47,8 @@ class SkillCalculator {
     
     static async betterThan(player, topNHltvPlayersPromise) {
         const extensionSettings = await new Settings().extensionSettings;
-        let matches = player?.games;
+        let matches = player?.games//.filter(g => ((g.dataSource === 'matchmaking' || g.dataSource === 'faceit') && (g => g.teamScores[0] >= 13 || g.teamScores[1] >= 13)) || (g.dataSource === 'matchmaking_wingman' && (g => g.teamScores[0] >= 9 || g.teamScores[1] >= 9)) && !g.hasBannedPlayer);
+
         const allMatchesCount = matches.length;
     
         let playerComparisons = {
@@ -111,7 +112,7 @@ class SkillCalculator {
                 });
             });
     
-            const weaponsList = ['AK-47', 'M4A4', 'M4A1-S', 'M4A4', 'FAMAS', 'Galil AR'];
+            const weaponsList = ['AK-47', 'M4A1-S', 'FAMAS', 'Galil AR'];
             const sprayControlOverall = this.toValue(sprayComparisons.filter(sc => weaponsList.includes(sc.weaponLabel)).map(sc => sc.playerError), sprayComparisons.filter(sc => weaponsList.includes(sc.weaponLabel)).map(sc => sc.topNHltvPlayerError), false);
             const sprayControlAK = [sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').playerError, sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').topNHltvPlayerError, sprayComparisons.find(sc => sc.weaponLabel === 'AK-47').coordsLimit];
         
@@ -122,12 +123,14 @@ class SkillCalculator {
             } else if (dataSource === 'premierwgm') {
                 matches = matches.filter(m => m.dataSource === 'matchmaking' || m.dataSource === 'matchmaking_wingman');
             }
-            const reactionTimes = this.toMs(matches.map(g => g.playerStats[0].reactionTime), topNHltvPlayer.games.map(g => g.playerStats[0].reactionTime));
-            const preaaim = this.toValue(matches.map(g => g.playerStats[0].preaim), topNHltvPlayer.games.map(g => g.playerStats[0].preaim), false);
-            const accuracyEnemySpotted = this.toValue(matches.map(g => g.playerStats[0].accuracyEnemySpotted), topNHltvPlayer.games.map(g => g.playerStats[0].accuracyEnemySpotted), true);
-            const accuracy = this.toValue(matches.map(g => g.playerStats[0].accuracy), topNHltvPlayer.games.map(g => g.playerStats[0].accuracy), true);
-            const accuracyHead = this.toValue(matches.map(g => g.playerStats[0].accuracyHead), topNHltvPlayer.games.map(g => g.playerStats[0].accuracyHead), true);
-            const sprayAccuracy = this.toValue(matches.map(g => g.playerStats[0].sprayAccuracy), topNHltvPlayer.games.map(g => g.playerStats[0].sprayAccuracy), true);
+
+            const topNHltvPlayergames = topNHltvPlayer?.games//.filter(g => g.teamScores[0] >= 13 || g.teamScores[1] >= 13);
+            const reactionTimes = this.toMs(matches.map(g => g.playerStats[0].reactionTime), topNHltvPlayergames.map(g => g.playerStats[0].reactionTime));
+            const preaaim = this.toValue(matches.map(g => g.playerStats[0].preaim), topNHltvPlayergames.map(g => g.playerStats[0].preaim), false);
+            const accuracyEnemySpotted = this.toValue(matches.map(g => g.playerStats[0].accuracyEnemySpotted), topNHltvPlayergames.map(g => g.playerStats[0].accuracyEnemySpotted), true);
+            const accuracy = this.toValue(matches.map(g => g.playerStats[0].accuracy), topNHltvPlayergames.map(g => g.playerStats[0].accuracy), true);
+            const accuracyHead = this.toValue(matches.map(g => g.playerStats[0].accuracyHead), topNHltvPlayergames.map(g => g.playerStats[0].accuracyHead), true);
+            const sprayAccuracy = this.toValue(matches.map(g => g.playerStats[0].sprayAccuracy), topNHltvPlayergames.map(g => g.playerStats[0].sprayAccuracy), true);
             matchesCount = matches.length;
     
 

@@ -7,8 +7,8 @@ class Checkers {
         return !Array.from(document.getElementsByClassName('global_action_link'))?.some(btn => btn.href?.includes('https://steamcommunity.com/login/') ?? false);
     }
     
-    static isHltvProPlayer(player) {
-        return !!player.games.some(g => g.dataSource === 'hltv');
+    static isHltvProPlayer(playerDetails) {
+        return !!playerDetails.gameTypes.some(g => g.dataSource === 'hltv');
     }
     
     static isEseaPlayer(player) {

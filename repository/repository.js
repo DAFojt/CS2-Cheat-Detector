@@ -28,7 +28,8 @@ class PlayerRepository {
                 faceitNickname: pd.meta.faceitNickname,
                 esportalNickname: pd.meta.esportalNickname,
                 cs2MatchesCount: pd.games.filter(g => g.isCs2).length,
-                csgoMatchesCount: pd.games.filter(g => !g.isCs2).length
+                csgoMatchesCount: pd.games.filter(g => !g.isCs2).length,
+                gameTypes: [...new Set((pd.games).map(x => x.dataSource))]
             } : null});
     }
     

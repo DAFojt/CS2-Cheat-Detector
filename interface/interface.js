@@ -48,7 +48,7 @@ async function createInterface(playerDataPromise, skillCalculationsPromise, play
     mainDiv.appendChild(buttonsDiv);
 
     let uiPromises = [
-        createInfoTab(playerData, playerDetailsPromise, playerFaceitDataPromise).then(tab => {
+        createInfoTab(playerData, playerDetailsPromise).then(tab => {
             if(tab) infoDiv.appendChild(tab);
         }),
         createBannedTeammatesTab(playerDetailsPromise, playerFaceitDataPromise).then(tab => {
@@ -57,10 +57,10 @@ async function createInterface(playerDataPromise, skillCalculationsPromise, play
         createPlatformBansTab(playerDetailsPromise, playerFaceitDataPromise).then(tab => {
             if(tab) platformBansDiv.appendChild(tab);
         }),
-        createSuspiciousTab(playerData, skillCalculationsPromise, playerFaceitDataPromise).then(tab => {
+        createSuspiciousTab(playerDetailsPromise, skillCalculationsPromise, playerFaceitDataPromise).then(tab => {
             if(tab) suspiciousPointsDiv.appendChild(tab);
         }),
-        createCheaterDiv(playerData, skillCalculationsPromise, playerFaceitDataPromise).then(div => {
+        createCheaterDiv(playerData, playerDetailsPromise, skillCalculationsPromise, playerFaceitDataPromise).then(div => {
             if(div) cheaterDiv.appendChild(div);
             if(loaderDiv)
                 extDiv.removeChild(loaderDiv);
@@ -103,7 +103,7 @@ function removeOldMainDiv() {
     }
 }
 
-async function createInfoTab(player, playerDetailsPromise, playerFaceitDataPromise) {
+async function createInfoTab(player, playerDetailsPromise) {
     if(!player?.games?.length || player.games.length === 0)
         return;
 
@@ -281,15 +281,14 @@ async function createPlatformBansTab(detailsPromise, playerFaceitDataPromise) {
     return tab;
 }
 
-async function createSuspiciousTab(player, skillCalculationsPromise, playerFaceitDataPromise) {
+async function createSuspiciousTab(playerDetailsPromise, skillCalculationsPromise, playerFaceitDataPromise) {
     return skillCalculationsPromise.then(async skillCalculations => {
-        const playerFaceitData = await playerFaceitDataPromise;
         const extensionSettings = await (new Settings().extensionSettings);
         const matchesCount = skillCalculations.matchesCount;
         const result = skillCalculations.result;
         const { tab, tabContent } = await InterfaceTools.createTabWithContent('Suspicious points');
         const top10HltvPlayers = extensionSettings.top10hltvPlayers;
-        if (Checkers.isHltvProPlayer(player) || Checkers.isFaceitProPlayer(playerFaceitData)) {
+        if (Checkers.isHltvProPlayer(await playerDetailsPromise) || Checkers.isFaceitProPlayer(await playerFaceitDataPromise)) {
             return;
         }
         else if(matchesCount >= extensionSettings.minMatchesCount) {
@@ -377,7 +376,7 @@ async function createSuspiciousTab(player, skillCalculationsPromise, playerFacei
     })
 }
 
-async function createCheaterDiv(player, skillCalculationsPromise, playerFaceitDataPromise) {
+async function createCheaterDiv(player, playerDetailsPromise, skillCalculationsPromise, playerFaceitDataPromise) {
     const extensionSettings = await (new Settings().extensionSettings);
 
     return skillCalculationsPromise.then(async skillCalculations => {
@@ -389,7 +388,7 @@ async function createCheaterDiv(player, skillCalculationsPromise, playerFaceitDa
         cheaterDiv.className = 'cheat-detector cheat-percentage-div'
 
         if(matchesCount >= extensionSettings.minMatchesCount) {
-            if (Checkers.isHltvProPlayer(player)) {
+            if (Checkers.isHltvProPlayer(await playerDetailsPromise)) {
                 cheaterInfoTextElement.textContent = 'HLTV PRO';
             } else if (Checkers.isFaceitProPlayer(await playerFaceitDataPromise)) {
                 cheaterInfoTextElement.textContent = 'FPL PRO';
@@ -478,7 +477,7 @@ async function createButtonsDiv(player, playerDetailsPromise, skillCalculationsP
 
     const buttonComment = createCommentButton(player, skillCalculationsPromise, playerFaceitDataPromise);
     buttonsRow1.appendChild(buttonComment);
-    const reportButton = createReportButton(player, skillCalculationsPromise, playerFaceitDataPromise);
+    const reportButton = createReportButton(playerDetailsPromise, skillCalculationsPromise, playerFaceitDataPromise);
     buttonsRow1.appendChild(reportButton);
     const buttonLeetify = createLeetifyButton(player, playerDetailsPromise);
     buttonsRow1.appendChild(buttonLeetify);
@@ -488,8 +487,8 @@ async function createButtonsDiv(player, playerDetailsPromise, skillCalculationsP
 
     buttonsDiv.disabled = true;
 
-    playerFaceitDataPromise.then(fdp => {
-        if (!Checkers.isHltvProPlayer(player) && !Checkers.isFaceitProPlayer(fdp)) {
+    playerFaceitDataPromise.then(async fdp => {
+        if (!Checkers.isHltvProPlayer(await playerDetailsPromise) && !Checkers.isFaceitProPlayer(fdp)) {
             buttonsDiv.disabled = false;
         }
     })
@@ -497,7 +496,7 @@ async function createButtonsDiv(player, playerDetailsPromise, skillCalculationsP
     return buttonsDiv;
 }
 
-function createReportButton(player, skillCalculationsPromise, playerFaceitDataPromise) {
+function createReportButton(playerDetailsPromise, skillCalculationsPromise, playerFaceitDataPromise) {
     const reportButton = document.createElement('button');
     reportButton.textContent = 'Report';
     reportButton.className = 'btn_profile_action btn_medium';
@@ -506,7 +505,7 @@ function createReportButton(player, skillCalculationsPromise, playerFaceitDataPr
     skillCalculationsPromise.then(async skillCalculations => {
         const suspiciousPoints = skillCalculations.result.getAllSuspiciousPoints();
         const suspiciousBehaviours = [...new Set(suspiciousPoints.filter(sp => 100/sp.all*sp.points >= 80).map(sp => sp.suspiciousBehaviour))];
-        if(suspiciousBehaviours.length === 0 || Checkers.isUserProfile() || !Checkers.isLoggedIn() || Checkers.isHltvProPlayer(player) || Checkers.isFaceitProPlayer(await playerFaceitDataPromise)) {
+        if(suspiciousBehaviours.length === 0 || Checkers.isUserProfile() || !Checkers.isLoggedIn() || Checkers.isHltvProPlayer(await playerDetailsPromise) || Checkers.isFaceitProPlayer(await playerFaceitDataPromise)) {
             reportButton.disabled = true;
             return;
         }
