@@ -8,7 +8,7 @@ class Checkers {
     }
     
     static isHltvProPlayer(playerDetails) {
-        return !!playerDetails.gameTypes.some(g => g.dataSource === 'hltv');
+        return !!playerDetails.gameTypes?.some(g => g.dataSource === 'hltv');
     }
     
     static isEseaPlayer(player) {

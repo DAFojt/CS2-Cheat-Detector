@@ -10,7 +10,7 @@ class PlayerRepository {
     
     static async getPlayerDetailsData(idPromise) {
         const id = await idPromise;
-        return fetch(`https://api.leetify.com/api/profile/${id}`).then(res => res.ok ? this.parsePlayerDetails(res.json()) : null).catch(err => { console.info('getPlayerDetails ERROR', err); return null; }).finally(() => console.info('Player details API called'));
+        return fetch(`https://api.cs-prod.leetify.com/api/profile/id/${id}`).then(res => res.ok ? this.parsePlayerDetails(res.json()) : null).catch(err => { console.info('getPlayerDetails ERROR', err); return null; }).finally(() => console.info('Player details API called'));
     }
     
     static async parsePlayerDetails(playerDetailsPromise) {
